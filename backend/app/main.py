@@ -210,15 +210,24 @@ def rankings(
             for s in db.scalars(select(State).where(State.user_id == user.id))
         }
         entries = []
+        target_entries = data.get("entries", [])
+        if category:
+            if "by_category" in data and category in data["by_category"]:
+                target_entries = data["by_category"][category]
+            else:
+                from .ranking import rank
+                computed = rank(db, period, now())
+                target_entries = computed.get("by_category", {}).get(category, [])
+
         missing_url_ids = [
-            original["id"] for original in data.get("entries", []) if not original.get("url")
+            original["id"] for original in target_entries if not original.get("url")
         ]
         url_map = {}
         if missing_url_ids:
             for a in db.scalars(select(Article).where(Article.issue_id.in_(missing_url_ids))):
                 if a.issue_id not in url_map:
                     url_map[a.issue_id] = a.url
-        for original in data["entries"]:
+        for original in target_entries:
             r = {
                 **original,
                 "url": original.get("url") or url_map.get(original["id"], ""),

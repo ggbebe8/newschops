@@ -152,7 +152,7 @@ function App() {
       tab === "admin"
         ? api("/admin/status").then(setStatus)
         : api(
-            `/${["interest", "saved"].includes(tab) || category || source || q ? "feed" : "rankings"}?period=${period}&category=${encodeURIComponent(category)}&source=${encodeURIComponent(source)}&q=${encodeURIComponent(q)}&view=${tab}`,
+            `/${["interest", "saved"].includes(tab) || source || q ? "feed" : "rankings"}?period=${period}&category=${encodeURIComponent(category)}&source=${encodeURIComponent(source)}&q=${encodeURIComponent(q)}&view=${tab}`,
           ).then(setData),
     ])
       .catch((e) => setError(e.message))
@@ -495,26 +495,28 @@ function App() {
                   </button>
                 ))}
               </div>
+              <div className="category-bar">
+                {[
+                  ["", "종합"],
+                  ["정치", "정치"],
+                  ["경제", "경제"],
+                  ["사회", "사회"],
+                  ["국제", "국제"],
+                  ["연예", "연예"],
+                  ["스포츠", "스포츠"],
+                  ["산업/기술", "IT/기술"],
+                  ["문화", "문화"],
+                ].map(([val, label]) => (
+                  <button
+                    key={val}
+                    className={`cat-chip ${category === val ? "active" : ""}`}
+                    onClick={() => setCategory(val)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
               <div className="filters">
-                <select
-                  aria-label="분야"
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                >
-                  {[
-                    "",
-                    "정치",
-                    "경제",
-                    "사회",
-                    "국제",
-                    "산업/기술",
-                    "문화",
-                  ].map((c) => (
-                    <option key={c} value={c}>
-                      {c || "모든 분야"}
-                    </option>
-                  ))}
-                </select>
                 <select
                   aria-label="언론사"
                   value={source}

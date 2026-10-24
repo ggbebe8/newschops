@@ -165,11 +165,19 @@ def rank(db, period, at):
             break
         c["selection_reason"] = "후보 부족으로 분야 제한 완화"
         chosen.append(c)
+    by_category = {}
+    for c in candidates:
+        cat = c["category"]
+        if cat not in by_category:
+            by_category[cat] = []
+        if len(by_category[cat]) < 10:
+            by_category[cat].append(c)
     coverage = {
         s.id: s.state for s in all_sources if not (s.capabilities or {}).get("archived")
     }
     return {
         "entries": chosen,
+        "by_category": by_category,
         "as_of": at.isoformat(),
         "period_start": start.isoformat(),
         "period_end": end.isoformat(),

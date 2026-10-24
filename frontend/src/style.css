@@ -286,6 +286,35 @@ input {
   opacity: 0.6;
   margin-left: 4px;
 }
+.category-bar {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 10px 0 16px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.category-bar::-webkit-scrollbar {
+  display: none;
+}
+.cat-chip {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-color, #333);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.cat-chip.active {
+  background: var(--green);
+  color: #fff;
+  border-color: var(--green);
+  font-weight: 700;
+}
 .compare-link {
   display: inline-block;
   margin-left: 8px;
