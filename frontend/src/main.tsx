@@ -377,7 +377,9 @@ function App() {
               <button onClick={() => setDetail(null)}>← 뉴스 목록</button>
               <div className="eyebrow">ISSUE BRIEFING</div>
               <h1>{detail.title}</h1>
-              <div className="notice">{detail.comparison}</div>
+              {detail.comparison && !detail.comparison.startsWith("비교 불가") && (
+                <div className="notice">{detail.comparison}</div>
+              )}
               <h2>매체별 원문</h2>
               {detail.articles.map((a: any) => (
                 <article className="card" key={a.id}>
@@ -534,11 +536,6 @@ function App() {
                       >
                         {r.title}
                       </button>
-                      {format !== "title" && (
-                        <p className="muted">
-                          제목 기반 · 본문 요약과 매체 비교 근거가 부족합니다.
-                        </p>
-                      )}
                       <div className="source-line">
                         {r.sources.join(" · ")}
                         {r.match_reason && (
