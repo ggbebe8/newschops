@@ -53,14 +53,14 @@ git log -5 --oneline
 | 기본 브랜치 | main. 사용자 지정 작성자 pscho / ggbebe7@gmail.com, 저장소 로컬 설정. 초기 커밋은 Git log로 확인 |
 | 애플리케이션/worker/프런트 | backend/app/main.py, worker.py, frontend/src/main.tsx |
 | DB migration | backend/migrations, 현재 003. 001 스키마는 schema_v1.py에 동결 |
-| Compose 서비스·포트 | db, migrate, app, worker; 선택 caddy(tls). 앱127.0.0.1:38475, DB포트 비공개 |
+| Compose 서비스·포트 | db, migrate, app, worker; 선택 caddy(tls). 앱 0.0.0.0:38475, DB포트 비공개 |
 | 실행 | .env 준비 후 docker compose up -d --build |
-| 검증 | pytest22개, TS/Vite빌드, 실제HTTP/PG잠금, 빈DB기동, 백업복구, Chromium360/768/1440 통과 |
+| 검증 | pytest23개, TS/Vite빌드, 실제HTTP/PG잠금, 빈DB기동, 백업복구, Chromium360/768/1440, Caddy 도메인 HTTPS 검증 통과 |
 | 활성10개 소스 | 동아·조선·서울·한겨레·경향·세계·연합·SBS·매경·한경. worker10곳정상, 별도 smoke경제지2곳403 기록 |
 | 동아일보 지면 | 공개 지면 목차2026-10-24자66건 실제 저장. 다른9곳미지원. 이미지/PDF접근없음 |
 | AI | 예약환경변수와테이블만존재. 외부호출/예산/캐시 미구현, 키입력만으로활성화안됨 |
 | 본문 비교 | 허용본문미확보로비교불가명시. 제목에서논조/공통사실을생성하지않음 |
-| PWA/HTTPS | 정적셸만캐시, 사용자API no-store. 실제기기설치/도메인HTTPS미검증 |
+| PWA/HTTPS | 정적셸만캐시, 사용자API no-store. Caddy HTTPS(newschops.ggbebe8.duckdns.org) 검증 완료, 실제 기기 설치는 미검증 |
 | 남은 작업 | TASKS의우선순위. 고급사건묶기/독립취재판정/중요전개/영향근거/선택AI/일부관리설정 |
 
 실제 비밀은 로컬 .env에만 있으며 권한600/Git제외. 관리자 초기 비밀번호는 이 문서나 로그에 기록하지 않는다. 테스트명령/측정조건/외부연결표는 README와docs 참조.
@@ -167,3 +167,9 @@ Git author 미설정, 권한 문제, 비밀 검출 등으로 커밋 불가하면
 
 - 포트 변경: 다른 서비스의38471/38473/38501 사용을 확인하고 호스트38475로 변경했다. 컨테이너 내부8080은 유지한다. 관리자 교체는 새 관리자 생성→새 계정 로그인→기존 관리자 비활성화로 가능하며 환경변수는 최초 생성용이다.
 - 포트 변경 검증: Compose 재기동,38475 health200,8080 해제,pytest22개 및 새 주소 브라우저 검증 통과. 계정은 변경하지 않았다.
+
+- 비밀번호 최소 길이 완화 및 Caddy 등록:
+  - 비밀번호 최소 길이 제한을 14자리에서 6자리로 완화 (bootstrap, main.py의 생성/변경/초기화 엔드포인트 및 프론트엔드 minLength 속성).
+  - `/home/achops1368/docker/obsidian-livesync/docker/config/Caddyfile`에 `newschops.ggbebe8.duckdns.org` -> `172.21.0.1:38475` 프록시 블록 추가 및 livesync-caddy reload 완료.
+  - Caddy 프록시 연동을 위해 `APP_BIND=0.0.0.0`으로 변경하고 `main.py`에 `ALLOWED_ORIGINS` 허용목록 확장 및 X-Forwarded-Proto 기반 Secure 쿠키 처리 적용.
+  - 검증: pytest 23개 통과, 앱 컨테이너 내부 실제 HTTP/권한/사용자격리 스모크 통과, 호스트 로컬 및 공개 HTTPS 도메인(https://newschops.ggbebe8.duckdns.org) 대상 Playwright 뷰포트/PWA 매니페스트/로그아웃 브라우저 스모크 통과. DB migration 변경 없음.

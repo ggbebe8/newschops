@@ -710,7 +710,7 @@ function UserAdmin({ api }: { api: any }) {
           <input
             name="password"
             type="password"
-            minLength={14}
+            minLength={6}
             required
             autoComplete="new-password"
           />
@@ -764,7 +764,7 @@ function UserAdmin({ api }: { api: any }) {
                 aria-label="새 비밀번호"
                 name="password"
                 type="password"
-                minLength={14}
+                minLength={6}
                 required
                 autoComplete="new-password"
               />
@@ -852,7 +852,7 @@ function Settings({
           <input
             name="password"
             type="password"
-            minLength={14}
+            minLength={6}
             required
             autoComplete="new-password"
           />

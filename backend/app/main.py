@@ -16,6 +16,12 @@ from .paper import article_key
 
 app = FastAPI(title="newschops", docs_url=None, redoc_url=None, openapi_url=None)
 ORIGIN = os.getenv("APP_ORIGIN", "http://localhost:38475").rstrip("/")
+ALLOWED_ORIGINS = {
+    ORIGIN,
+    "http://localhost:38475",
+    "http://127.0.0.1:38475",
+    "https://newschops.ggbebe8.duckdns.org",
+}
 ph = PasswordHasher()
 attempts = defaultdict(list)
 
@@ -51,7 +57,8 @@ async def safeguards(request, call_next):
         "HEAD",
         "OPTIONS",
     ):
-        if request.headers.get("origin") != ORIGIN:
+        origin = request.headers.get("origin")
+        if not origin or origin not in ALLOWED_ORIGINS:
             return Response(status_code=403)
     result = await call_next(request)
     result.headers["Cache-Control"] = (
@@ -123,11 +130,15 @@ def login(data: Credentials, request: Request, response: Response):
                 expires=now() + timedelta(hours=12),
             )
         )
+        is_https = (
+            request.headers.get("x-forwarded-proto") == "https"
+            or request.url.scheme == "https"
+        )
         response.set_cookie(
             "session",
             token,
             httponly=True,
-            secure=ORIGIN.startswith("https://"),
+            secure=is_https,
             samesite="strict",
             max_age=43200,
             path="/",
@@ -160,8 +171,8 @@ def logout(request: Request, response: Response, user=Depends(auth)):
 
 @app.post("/api/password")
 def password(data: Credentials, user=Depends(auth)):
-    if len(data.password) < 14:
-        raise HTTPException(422, "비밀번호 14자 이상 필요")
+    if len(data.password) < 6:
+        raise HTTPException(422, "비밀번호 6자 이상 필요")
     with Session.begin() as db:
         db.get(User, user.id).password = ph.hash(data.password)
         db.execute(delete(Login).where(Login.user_id == user.id))
@@ -615,8 +626,8 @@ def users(user=Depends(admin)):
 
 @app.post("/api/admin/users")
 def create_user(data: NewUser, user=Depends(admin)):
-    if len(data.password) < 14:
-        raise HTTPException(422, "14자 이상 필요")
+    if len(data.password) < 6:
+        raise HTTPException(422, "6자 이상 필요")
     with Session.begin() as db:
         if db.scalar(select(User).where(User.username == data.username)):
             raise HTTPException(409, "중복 계정")
@@ -635,8 +646,8 @@ def create_user(data: NewUser, user=Depends(admin)):
 
 @app.post("/api/admin/users/{uid}/reset-password")
 def reset_password(uid: int, data: Credentials, user=Depends(admin)):
-    if len(data.password) < 14:
-        raise HTTPException(422, "14자 이상 필요")
+    if len(data.password) < 6:
+        raise HTTPException(422, "6자 이상 필요")
     with Session.begin() as db:
         u = db.get(User, uid)
         if not u:

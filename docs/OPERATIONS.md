@@ -8,8 +8,9 @@ Docker/Compose가 필요하다. .env 준비 후 `docker compose up -d --build`. 
 
 ## HTTPS
 
-1. 기존 HTTPS reverse proxy: APP_ORIGIN=https://news.example.com, APP_BIND=127.0.0.1. 프록시는 localhost:38475으로 전달한다. 앱은 전달 헤더를 신뢰하지 않고 APP_ORIGIN으로 쿠키/CSRF를 판단한다. 현재는 전달 IP 대신 직접 peer IP로 로그인 제한되므로 프록시 뒤 사용자는 제한 버킷을 공유한다. 외부 edge에도 로그인 속도 제한 권장.
-2. Caddy: DOMAIN=news.example.com, TLS_EMAIL, APP_ORIGIN=https://news.example.com. `docker compose --profile tls up -d --build`. DNS A/AAAA와 80/443 접근은 사용자 인프라 사전조건. app은 기본 loopback에만 노출된다. Caddy가 HTTPS를 종료하므로 Secure 쿠키가 설정된다.
+1. 기존 HTTPS reverse proxy: APP_ORIGIN=https://news.example.com, APP_BIND=0.0.0.0. 프록시는 172.21.0.1:38475 또는 호스트 포트로 전달한다. Caddy 등 역방향 프록시에서 `X-Forwarded-Proto: https`를 전달하며 Secure 쿠키가 자동 적용된다.
+   - 현재 호스트에서는 `livesync-caddy`가 `newschops.ggbebe8.duckdns.org` 도메인으로 `172.21.0.1:38475`에 대한 HTTPS 종단 및 Let's Encrypt 인증서를 자동 관리한다.
+2. 자체 Caddy 프로필: DOMAIN=news.example.com, TLS_EMAIL, APP_ORIGIN=https://news.example.com. `docker compose --profile tls up -d --build`. DNS A/AAAA와 80/443 접근은 사용자 인프라 사전조건. Caddy가 HTTPS를 종료하므로 Secure 쿠키가 설정된다.
 
 공개 회원가입 없음. 관리자 생성/비활성화/초기화 API는 관리자 세션+CSRF 필요. `/api/admin/users` GET/POST, `POST /api/admin/users/{id}/disable`, `POST /api/admin/users/{id}/reset-password` (username/password JSON). 사용자 생성/비활성화/초기화는 관리자 사용자 관리 화면에서도 제공한다. 비밀번호 변경/초기화 시 모든 기존 세션 폐기. 세션 만료12시간. 로그인 15분10회(프로세스 메모리; app 단일 프로세스 기준).
 

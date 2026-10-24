@@ -9,12 +9,12 @@ def bootstrap():
     password = os.environ.get("ADMIN_PASSWORD", "")
     secret = os.environ.get("SESSION_SECRET", "")
     if (
-        len(password) < 14
-        or password.lower() in ("changeme12345678", "password12345678")
+        len(password) < 6
+        or password.lower() in ("changeme", "password", "123456")
         or len(secret) < 32
     ):
         raise RuntimeError(
-            "ADMIN_PASSWORD 14자 이상 및 SESSION_SECRET 32자 이상 설정 필요"
+            "ADMIN_PASSWORD 6자 이상 및 SESSION_SECRET 32자 이상 설정 필요"
         )
     with Session.begin() as db:
         if not db.scalar(select(User).limit(1)):

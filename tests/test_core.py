@@ -103,6 +103,35 @@ def test_user_isolation_and_password_revoke(db):
     assert a.get("/api/me").status_code == 200
 
 
+def test_password_min_length(db):
+    c = TestClient(main.app)
+    h = {"Origin": "http://localhost:38475"}
+    r = c.post(
+        "/api/login",
+        headers=h,
+        json={"username": "reader", "password": "a-long-test-password"},
+    ).json()
+    csrf_h = {**h, "X-CSRF-Token": r["csrf"]}
+    # 5자리는 422 실패
+    assert (
+        c.post(
+            "/api/password",
+            headers=csrf_h,
+            json={"username": "reader", "password": "12345"},
+        ).status_code
+        == 422
+    )
+    # 6자리는 200 성공
+    assert (
+        c.post(
+            "/api/password",
+            headers=csrf_h,
+            json={"username": "reader", "password": "123456"},
+        ).status_code
+        == 200
+    )
+
+
 def test_score_missing_and_no_inflation():
     r = score(2, 0, 12)
     assert r["missing"] == ["prominence", "impact"]

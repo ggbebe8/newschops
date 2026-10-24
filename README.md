@@ -13,9 +13,9 @@ python3 scripts/generate_env.py
 docker compose up -d --build
 ```
 
-또는 `.env.example`을 `.env`로 복사해 DB_PASSWORD(URL-safe), ADMIN_PASSWORD(14자 이상), SESSION_SECRET(32자 이상)를 채운 뒤 동일 Compose 명령을 실행한다. 기본/빈 비밀번호면 초기화 서비스가 실패한다. `.env` 값에 `$`가 있으면 Compose 보간 방지를 위해 작은따옴표로 감싼다. .env는 Git 제외 및 권한600 유지.
+또는 `.env.example`을 `.env`로 복사해 DB_PASSWORD(URL-safe), ADMIN_PASSWORD(6자 이상), SESSION_SECRET(32자 이상)를 채운 뒤 동일 Compose 명령을 실행한다. 기본/빈 비밀번호면 초기화 서비스가 실패한다. `.env` 값에 `$`가 있으면 Compose 보간 방지를 위해 작은따옴표로 감싼다. .env는 Git 제외 및 권한600 유지.
 
-접속: **http://localhost:38475**. 최초 계정은 .env의 ADMIN_USERNAME(기본 admin)과 ADMIN_PASSWORD. 비밀번호는 문서/로그에 출력하지 않는다. 개인 설정에서 변경 가능하며 재로그인이 필요하다. 재시작 시 비밀번호를 덮어쓰지 않는다. DB는 호스트 포트를 공개하지 않는다. 앱 기본 bind127.0.0.1, 외부 접근은 아래 HTTPS 설정을 사용한다.
+접속: **http://localhost:38475** 또는 Caddy 역방향 프록시를 통한 **https://newschops.ggbebe8.duckdns.org**. 최초 계정은 .env의 ADMIN_USERNAME(기본 admin)과 ADMIN_PASSWORD. 비밀번호는 문서/로그에 출력하지 않는다. 개인 설정에서 변경 가능하며 재로그인이 필요하다. 재시작 시 비밀번호를 덮어쓰지 않는다. DB는 호스트 포트를 공개하지 않는다. 외부 접근은 Caddy 역방향 프록시 설정을 사용한다.
 
 설치 후 첫 수집을 기다린다. 초기 순위는 worker가 현재 시간 슬롯에 생성한다. 순위는 매시간 갱신되므로 이후 수집 기사는 다음 슬롯부터 반영된다. 분야/매체/관심 탐색은 저장된 전체 기사에서 필터링한다. 샘플 뉴스를 시드하지 않는다.
 
@@ -41,7 +41,7 @@ live smoke는 별도 외부 연결 시험이고 fixture/단위 테스트와 구�
 
 2026-10-25 KST, 활성 10개 소스 모두 worker에서 RSS 파싱·저장 성공. 최초 후보 중 중앙일보·한국일보(404), KBS(빈 응답)는 서울신문·세계일보·SBS로 교체했다. 독립 smoke에서 매일경제·한국경제는 간헐 403이 있었으므로 장기 안정성을 보장하지 않는다. 동아일보 2026-10-24자 공개 지면 목차 66건 확인. 원문 본문·지면 이미지/PDF를 저장하지 않는다.
 
-22개 단위/fixture 테스트, 실제 HTTP 인증/권한/사용자 격리, PostgreSQL worker 중복 잠금, 빈 DB 기동, 백업의 별도 DB 복구, Chromium 360/768/1440px 화면 검증을 통과했다. 실제 Android/iOS 설치와 도메인 HTTPS는 미검증이다.
+23개 단위/fixture 테스트, 실제 HTTP 인증/권한/사용자 격리, PostgreSQL worker 중복 잠금, 빈 DB 기동, 백업의 별도 DB 복구, Chromium 360/768/1440px 화면 검증을 통과했다. Caddy를 통한 도메인 HTTPS(https://newschops.ggbebe8.duckdns.org) 접근 및 브라우저 검증을 완료했다. 실제 Android/iOS 기기 설치는 미검증이다.
 
 실측: 기사 593건/이슈 578개에서 현재 순위 재계산 1회 128.73ms, AI 호출 0. 단발 idle 메모리 app 66.49MiB/worker 57.75MiB/DB 70.65MiB. 운영 한계/측정 조건은 TASKS 참조. 전체 시간별 작업의 peak 메모리와 총시간은 별도 측정하지 않았다.
 

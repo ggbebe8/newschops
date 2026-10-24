@@ -56,3 +56,11 @@
 - 사용자 요청으로 다른 서비스의 Docker 포트와 TCP listen 목록을 확인했다.38471/38473/38501 사용 중,38475는 미사용이었다. 기본값·로컬 .env의 APP_PORT 및 APP_ORIGIN을38475로 변경하고 컨테이너 내부8080을 유지했다.
 - 브라우저 검증은 .env의 APP_ORIGIN 또는 TEST_BASE_URL을 사용하도록 수정했다. 관리자 교체 방법을 운영 문서에 추가했다.
 - 검증: Compose 설정 검사·재빌드/재기동 성공. 새38475 health200 및 기존8080 listen 해제 확인. pytest22개 통과, 새 주소에서 Chromium 로그인/관리자 메뉴/지면/설정/360·768·1440px/manifest·아이콘/로그아웃 검증 통과. DB migration/사용자 계정 변경 없음.
+
+## 유지보수: 비밀번호 제한 최소 6자리 변경 및 Caddy 도메인 연동
+
+- 사용자 요청: 1. 비밀번호 제한 최소 6자리 변경, 2. Caddy에 newschops 등록.
+- 비밀번호 검증 수정: `backend/app/bootstrap.py`, `backend/app/main.py`(비밀번호 변경, 생성, 초기화), `frontend/src/main.tsx`의 minLength 제한을 14자리에서 6자리로 변경.
+- Caddy 연동: `/home/achops1368/docker/obsidian-livesync/docker/config/Caddyfile`에 `newschops.ggbebe8.duckdns.org` -> `172.21.0.1:38475` 프록시 및 HSTS 헤더 블록 추가 후 `livesync-caddy` reload.
+- 프록시 및 접속 지원: `compose.yaml` 및 `.env`의 `APP_BIND`를 `0.0.0.0`으로 변경, `main.py`의 `ALLOWED_ORIGINS` 허용목록 확장, `X-Forwarded-Proto: https` 감지 기반 Secure 쿠키 처리 적용.
+- 검증: pytest 23개(비밀번호 최소 길이 검증 추가) 통과, 컨테이너 내부 통합 스모크 통과, 호스트 및 공개 도메인 `https://newschops.ggbebe8.duckdns.org` 대상 Playwright 브라우저 스모크(360/768/1440px, 네비게이션, PWA 매니페스트/아이콘, 로그아웃) 통과.
