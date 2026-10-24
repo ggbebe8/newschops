@@ -10,7 +10,7 @@ const fs = require('fs');
   await page.locator('input[name=username]').fill(env.ADMIN_USERNAME);
   await page.locator('input[name=password]').fill(env.ADMIN_PASSWORD);
   await page.getByRole('button',{name:'로그인 →',exact:true}).click();
-  await page.getByRole('heading',{name:'오늘, 알아야 할 이야기'}).waitFor();
+  await page.getByRole('button',{name:'현재 TOP 10',exact:true}).waitFor();
   for(const width of [360,768,1440]){
     await page.setViewportSize({width,height:1000});
     await page.evaluate(()=>document.fonts.ready);

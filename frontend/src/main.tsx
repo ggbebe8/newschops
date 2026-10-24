@@ -463,27 +463,6 @@ function App() {
             </>
           ) : (
             <>
-              <div className="heading">
-                <div>
-                  <div className="eyebrow">THE DAILY BRIEFING</div>
-                  <h1>
-                    {tab === "interest"
-                      ? "나의 관심 뉴스"
-                      : tab === "saved"
-                        ? "저장한 뉴스"
-                        : "오늘, 알아야 할 이야기"}
-                  </h1>
-                  <p className="muted">
-                    흩어진 뉴스를 모아, 중요한 흐름을 살펴보세요.
-                  </p>
-                </div>
-                <span className="date">
-                  {new Intl.DateTimeFormat("ko-KR", {
-                    dateStyle: "full",
-                    timeZone: "Asia/Seoul",
-                  }).format(new Date())}
-                </span>
-              </div>
               <div className="periods">
                 {periods.map(([id, label]) => (
                   <button
