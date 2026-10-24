@@ -25,3 +25,9 @@
 - Caddy 역방향 프록시(`livesync-caddy`)에 `newschops.ggbebe8.duckdns.org` 등록 및 HSTS 설정.
 - 프록시 및 다양한 접속 경로를 위해 `ALLOWED_ORIGINS` 확장, `compose.yaml` 및 `.env` 바인드 주소 `0.0.0.0` 변경, X-Forwarded-Proto 기반 Secure 쿠키 처리 적용.
 - 단위 테스트(23개), 통합 스모크, 공개 HTTPS 도메인 및 로컬 브라우저 스모크 검증 통과.
+
+## 유지보수 — 사용자 관리 본인 비활성화 방지 UI 개선 및 admin 계정 비활성화
+
+- 사용자 관리 화면에서 본인 계정의 비활성화 버튼을 비활성화하고 "본인 계정" 텍스트를 표시하도록 개선.
+- 계정 비활성화 시 상태 메시지 피드백 제공.
+- 초기 관리자 `admin` 계정 비활성화(`active: false`) 및 기존 세션 폐기 완료 (새 관리자 `ggbebe8` 활성 유지).

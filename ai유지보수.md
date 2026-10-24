@@ -173,3 +173,8 @@ Git author 미설정, 권한 문제, 비밀 검출 등으로 커밋 불가하면
   - `/home/achops1368/docker/obsidian-livesync/docker/config/Caddyfile`에 `newschops.ggbebe8.duckdns.org` -> `172.21.0.1:38475` 프록시 블록 추가 및 livesync-caddy reload 완료.
   - Caddy 프록시 연동을 위해 `APP_BIND=0.0.0.0`으로 변경하고 `main.py`에 `ALLOWED_ORIGINS` 허용목록 확장 및 X-Forwarded-Proto 기반 Secure 쿠키 처리 적용.
   - 검증: pytest 23개 통과, 앱 컨테이너 내부 실제 HTTP/권한/사용자격리 스모크 통과, 호스트 로컬 및 공개 HTTPS 도메인(https://newschops.ggbebe8.duckdns.org) 대상 Playwright 뷰포트/PWA 매니페스트/로그아웃 브라우저 스모크 통과. DB migration 변경 없음.
+
+- 사용자 관리 본인 비활성화 방지 UI 개선 및 초기 admin 계정 비활성화:
+  - 사용자 관리 화면(`UserAdmin`)에서 로그인 중인 본인 계정의 비활성화 버튼을 비활성화하고 "본인 계정" 라벨 표시 및 상태 변경 메시지 피드백 추가.
+  - 신규 관리자 `ggbebe8` 계정이 정상 활성화되어 있으므로, 초기 `admin` 계정 비활성화(`active: false`) 및 기존 `admin` 세션 폐기 완료.
+  - 검증: `admin` 계정 로그인 거부(401) 확인, pytest 23개 통과, 프론트엔드 빌드 및 컨테이너 배포 완료. DB migration 변경 없음.

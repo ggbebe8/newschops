@@ -64,3 +64,12 @@
 - Caddy 연동: `/home/achops1368/docker/obsidian-livesync/docker/config/Caddyfile`에 `newschops.ggbebe8.duckdns.org` -> `172.21.0.1:38475` 프록시 및 HSTS 헤더 블록 추가 후 `livesync-caddy` reload.
 - 프록시 및 접속 지원: `compose.yaml` 및 `.env`의 `APP_BIND`를 `0.0.0.0`으로 변경, `main.py`의 `ALLOWED_ORIGINS` 허용목록 확장, `X-Forwarded-Proto: https` 감지 기반 Secure 쿠키 처리 적용.
 - 검증: pytest 23개(비밀번호 최소 길이 검증 추가) 통과, 컨테이너 내부 통합 스모크 통과, 호스트 및 공개 도메인 `https://newschops.ggbebe8.duckdns.org` 대상 Playwright 브라우저 스모크(360/768/1440px, 네비게이션, PWA 매니페스트/아이콘, 로그아웃) 통과.
+
+## 유지보수: 사용자 관리 본인 비활성화 방지 UI 개선 및 초기 admin 계정 비활성화
+
+- 사용자 요청: 기존 admin 계정 비활성화 요청.
+- 원인 분석: 기존 `admin` 계정으로 로그인한 상태에서 본인 비활성화를 시도하여 백엔드 보호 규칙(400: 자기 계정 비활성화 불가)으로 거부되었음.
+- 개선 및 조치:
+  - 프론트엔드(`UserAdmin`)에서 로그인 중인 본인 계정의 버튼을 비활성화하고 "본인 계정" 라벨 표시 및 상태 변경 성공 메시지 피드백 추가.
+  - 신규 관리자 `ggbebe8` 계정이 정상 활성화되어 있으므로, 기존 `admin` 계정 비활성화(`active: false`) 및 기존 `admin` 세션 폐기 완료.
+- 검증: `admin` 계정 로그인 거부(401) 확인, pytest 23개 통과, 프론트엔드 TypeScript 검사 통과 및 컨테이너 재빌드/기동 완료.

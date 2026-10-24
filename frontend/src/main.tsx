@@ -260,7 +260,7 @@ function App() {
               done={() => setRefresh((x) => x + 1)}
             />
           ) : tab === "users" ? (
-            <UserAdmin api={api} />
+            <UserAdmin api={api} currentUser={user} />
           ) : tab === "admin" ? (
             <>
               <div className="eyebrow">OPERATIONS</div>
@@ -667,7 +667,13 @@ function PaperView({ api }: { api: any }) {
     </>
   );
 }
-function UserAdmin({ api }: { api: any }) {
+function UserAdmin({
+  api,
+  currentUser,
+}: {
+  api: any;
+  currentUser: User | null;
+}) {
   const [users, setUsers] = useState<any[]>([]),
     [message, setMessage] = useState("");
   const reload = () =>
@@ -730,17 +736,22 @@ function UserAdmin({ api }: { api: any }) {
               {u.active ? "활성" : "비활성"}
             </span>
             <button
-              disabled={!u.active}
+              disabled={!u.active || u.username === currentUser?.username}
               onClick={async () => {
                 try {
                   await api(`/admin/users/${u.id}/disable`, "POST");
+                  setMessage(`${u.username} 계정이 비활성화되었습니다.`);
                   reload();
                 } catch (e: any) {
                   setMessage(e.message);
                 }
               }}
             >
-              비활성화
+              {u.username === currentUser?.username
+                ? "본인 계정"
+                : u.active
+                ? "비활성화"
+                : "비활성 상태"}
             </button>
           </div>
           <details>
