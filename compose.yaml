@@ -1,0 +1,93 @@
+name: newschops
+x-common: &common
+  image: newschops:local
+  build: .
+  env_file: .env
+  environment: &environment
+    DATABASE_URL: postgresql+psycopg://newschops:${DB_PASSWORD:?DB_PASSWORD required}@db:5432/newschops
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options: { max-size: 10m, max-file: "3" }
+services:
+  db:
+    image: postgres:17.6-alpine3.22
+    environment:
+      POSTGRES_DB: newschops
+      POSTGRES_USER: newschops
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD required}
+    volumes: [database:/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U newschops -d newschops"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options: { max-size: 10m, max-file: "3" }
+  migrate:
+    <<: *common
+    environment:
+      <<: *environment
+      ROLE: migrate
+    restart: "no"
+    depends_on:
+      db: { condition: service_healthy }
+  app:
+    <<: *common
+    ports: ["${APP_BIND:-127.0.0.1}:${APP_PORT:-8080}:8080"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    healthcheck:
+      test:
+        [
+          CMD,
+          python,
+          -c,
+          "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+  worker:
+    <<: *common
+    environment:
+      <<: *environment
+      ROLE: worker
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    healthcheck:
+      test:
+        [
+          CMD,
+          python,
+          -c,
+          "from backend.app.db import Session,Job,now; from backend.app.ranking import utc; s=Session(); h=s.get(Job,'heartbeat'); assert h and (now()-utc(h.updated)).total_seconds()<300",
+        ]
+      interval: 60s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+  caddy:
+    image: caddy:2.10.2-alpine
+    profiles: [tls]
+    ports: ["80:80", "443:443", "443:443/udp"]
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+      TLS_EMAIL: ${TLS_EMAIL:-}
+    volumes:
+      [
+        "./Caddyfile:/etc/caddy/Caddyfile:ro",
+        "caddy_data:/data",
+        "caddy_config:/config",
+      ]
+    depends_on: [app]
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options: { max-size: 10m, max-file: "3" }
+volumes:
+  database:
+  caddy_data:
+  caddy_config:

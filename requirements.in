@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+sqlalchemy
+psycopg[binary]
+alembic
+argon2-cffi
+httpx
+feedparser
+pytest
+pillow

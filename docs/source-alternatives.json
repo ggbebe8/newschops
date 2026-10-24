@@ -1,0 +1,66 @@
+[
+  {
+    "id": "seoul",
+    "name": "서울신문",
+    "endpoint": "https://www.seoul.co.kr/xml/rss/rss_top.xml",
+    "checked": "2026-10-24T21:49:09.865858+00:00",
+    "status": 200,
+    "count": 26,
+    "sample": [
+      {
+        "title": "北김정은, 당일치기 방중…中 서열 4위 왕후닝과 ‘경제 협력’ 논의",
+        "url": "https://www.seoul.co.kr/news/newsView.php?id=20261024500028",
+        "published": "2026-10-24 11:12:04+00:00"
+      }
+    ],
+    "duration_ms": 719
+  },
+  {
+    "id": "segye",
+    "name": "세계일보",
+    "endpoint": "https://www.segye.com/Articles/RSSList/segye_recent.xml",
+    "checked": "2026-10-24T21:49:09.867153+00:00",
+    "status": 200,
+    "count": 20,
+    "sample": [
+      {
+        "title": "조선의 금화도감, 미완의 국가직 소방관 [김세희의 역사ON]",
+        "url": "https://www.segye.com/newsView/20261024505383",
+        "published": "None"
+      }
+    ],
+    "duration_ms": 538
+  },
+  {
+    "id": "sbs",
+    "name": "SBS",
+    "endpoint": "https://news.sbs.co.kr/news/newsflashRssFeed.do?plink=RSSREADER",
+    "checked": "2026-10-24T21:49:09.871277+00:00",
+    "status": 200,
+    "count": 102,
+    "sample": [
+      {
+        "title": "프랑스 전역서 고물가 항의 시위…시민·경찰 충돌",
+        "url": "https://news.sbs.co.kr/news/endPage.do?news_id=N1008813447&plink=RSSLINK&cooper=RSSREADER",
+        "published": "2026-10-24 21:16:26+00:00"
+      }
+    ],
+    "duration_ms": 2361
+  },
+  {
+    "id": "kmib",
+    "name": "국민일보",
+    "endpoint": "https://www.kmib.co.kr/rss/data/kmibRssAll.xml",
+    "checked": "2026-10-24T21:49:10.405825+00:00",
+    "status": 200,
+    "count": 100,
+    "sample": [
+      {
+        "title": "프랑스 전역서 41만명 거리시위…이탈리아도 ‘콜로세움’ 뚫렸다",
+        "url": "https://www.kmib.co.kr/article/20261025500007",
+        "published": "2026-10-24 21:42:48+00:00"
+      }
+    ],
+    "duration_ms": 1549
+  }
+]

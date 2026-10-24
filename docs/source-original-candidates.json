@@ -1,0 +1,127 @@
+[
+  {
+    "id": "donga",
+    "name": "동아일보",
+    "endpoint": "https://rss.donga.com/total.xml",
+    "checked": "2026-10-24T21:47:40.627504+00:00",
+    "status": 200,
+    "count": 50,
+    "sample": [
+      {
+        "title": "킴 카다시안, 화이트 드레스 뚫고 나온 볼륨감…탄탄한 몸매 관리 비결은",
+        "url": "https://www.donga.com/news/Entertainment/article/all/20261025/134901498/1",
+        "published": "2026-10-24 15:11:46+00:00"
+      }
+    ],
+    "duration_ms": 278
+  },
+  {
+    "id": "chosun",
+    "name": "조선일보",
+    "endpoint": "https://www.chosun.com/arc/outboundfeeds/rss/?outputType=xml",
+    "checked": "2026-10-24T21:47:40.628455+00:00",
+    "status": 200,
+    "count": 100,
+    "sample": [
+      {
+        "title": "김정은, 당일치기 방중 끝났다... 中서열 4위 만나고 평양으로",
+        "url": "https://www.chosun.com/economy/economy_general/2026/10/24/XQV2NA5R7VD4HG3LDWFM3VWD5M/",
+        "published": "2026-10-24 11:29:56+00:00"
+      }
+    ],
+    "duration_ms": 476
+  },
+  {
+    "id": "joongang",
+    "name": "중앙일보",
+    "endpoint": "https://www.joongang.co.kr/rss",
+    "checked": "2026-10-24T21:47:40.634860+00:00",
+    "error": "HTTPStatusError",
+    "http_status": 404,
+    "duration_ms": 168
+  },
+  {
+    "id": "hani",
+    "name": "한겨레",
+    "endpoint": "https://www.hani.co.kr/rss/",
+    "checked": "2026-10-24T21:47:40.803540+00:00",
+    "status": 200,
+    "count": 30,
+    "sample": [
+      {
+        "title": "내 손때 묻은 책, 엄마에게 보여주기 싫어요…“제가 별종인가요?” [.txt]",
+        "url": "https://www.hani.co.kr/arti/culture/book/1283967.html",
+        "published": "None"
+      }
+    ],
+    "duration_ms": 514
+  },
+  {
+    "id": "khan",
+    "name": "경향신문",
+    "endpoint": "https://www.khan.co.kr/rss/rssdata/total_news.xml",
+    "checked": "2026-10-24T21:47:40.905945+00:00",
+    "status": 200,
+    "count": 45,
+    "sample": [
+      {
+        "title": "날씨 추워지면 변비 심해지는 이유 있었네...장운동 돕는 ‘세 가지 습관’",
+        "url": "https://www.khan.co.kr/article/202610250600021/",
+        "published": "None"
+      }
+    ],
+    "duration_ms": 257
+  },
+  {
+    "id": "hankook",
+    "name": "한국일보",
+    "endpoint": "https://www.hankookilbo.com/rss",
+    "checked": "2026-10-24T21:47:41.104893+00:00",
+    "error": "HTTPStatusError",
+    "http_status": 404,
+    "duration_ms": 95
+  },
+  {
+    "id": "yna",
+    "name": "연합뉴스",
+    "endpoint": "https://www.yna.co.kr/rss/news.xml",
+    "checked": "2026-10-24T21:47:41.163718+00:00",
+    "status": 200,
+    "count": 120,
+    "sample": [
+      {
+        "title": "대형 건설사들, 중대재해 영업정지에 '취소소송' 후 계속 수주",
+        "url": "https://www.yna.co.kr/view/AKR20261024044100003",
+        "published": "2026-10-24 21:41:01+00:00"
+      }
+    ],
+    "duration_ms": 349
+  },
+  {
+    "id": "kbs",
+    "name": "KBS",
+    "endpoint": "https://world.kbs.co.kr/rss/rss_news.htm?lang=k",
+    "checked": "2026-10-24T21:47:41.200920+00:00",
+    "error": "AttributeError",
+    "http_status": null,
+    "duration_ms": 126
+  },
+  {
+    "id": "mk",
+    "name": "매일경제",
+    "endpoint": "https://www.mk.co.kr/rss/30000001/",
+    "checked": "2026-10-24T21:47:41.318306+00:00",
+    "error": "HTTPStatusError",
+    "http_status": 403,
+    "duration_ms": 173
+  },
+  {
+    "id": "hankyung",
+    "name": "한국경제",
+    "endpoint": "https://www.hankyung.com/feed/all-news",
+    "checked": "2026-10-24T21:47:41.327937+00:00",
+    "error": "HTTPStatusError",
+    "http_status": 403,
+    "duration_ms": 188
+  }
+]
