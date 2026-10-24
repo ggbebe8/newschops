@@ -1,3 +1,4 @@
+import re
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 from collections import Counter
@@ -101,6 +102,9 @@ def rank(db, period, at):
     for issue in issues:
         articles = by_issue.get(issue.id, [])
         if not articles:
+            continue
+        # 일본어 및 외국어 전용 기사 배제
+        if re.search(r"[\u3040-\u309F\u30A0-\u30FF]", issue.title):
             continue
         known_count = len({a.origin for a in articles if a.origin.startswith("known:")})
         distinct_sources = len({a.source_id for a in articles})

@@ -568,8 +568,20 @@ function App() {
                     <div className="news-body">
                       <div className="meta">
                         <span>{r.category}</span>
-                        <span>{r.sources.length}개 매체</span>
-                        <span>{fmt(r.occurred)}</span>
+                        <span>
+                          {fmt(r.occurred)} / {r.sources.join(" · ")}
+                        </span>
+                        {r.sources.length > 1 && (
+                          <button
+                            className="compare-link"
+                            onClick={() => openDetail(r.id)}
+                          >
+                            매체별 보도 ({r.sources.length}개)
+                          </button>
+                        )}
+                        {r.match_reason && (
+                          <span> · 관심 일치: {r.match_reason.join(", ")}</span>
+                        )}
                       </div>
                       {r.url ? (
                         <a
@@ -588,20 +600,6 @@ function App() {
                           {r.title}
                         </button>
                       )}
-                      <div className="source-line">
-                        <span>{r.sources.join(" · ")}</span>
-                        {r.sources.length > 1 && (
-                          <button
-                            className="compare-link"
-                            onClick={() => openDetail(r.id)}
-                          >
-                            매체별 보도 ({r.sources.length}개)
-                          </button>
-                        )}
-                        {r.match_reason && (
-                          <span> · 관심 일치: {r.match_reason.join(", ")}</span>
-                        )}
-                      </div>
                       {format === "detail" && (
                         <p className="muted">
                           점수 {r.score.toFixed(1)} · 독립 취재 확인{" "}
@@ -617,10 +615,6 @@ function App() {
                         >
                           {r.state?.saved ? "★ 저장됨" : "☆ 저장"}
                         </button>
-                        <button onClick={() => state(r, "read")}>
-                          {r.state?.read ? "✓ 읽음" : "읽음 표시"}
-                        </button>
-                        <button onClick={() => state(r, "hidden")}>숨김</button>
                         <details>
                           <summary>
                             {r.evidence === 0 ? "수집 정보" : "선정 근거"}

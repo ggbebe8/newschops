@@ -45,6 +45,20 @@ def parse_feed(body):
     return result
 
 
+def is_korean_article(title: str, url: str) -> bool:
+    lower_url = url.lower()
+    # 1. URL 경로에 명시적인 외국어 섹션(/jp/, /en/, /cn/, /japanese/, /english/, /chinese/ 등) 제외
+    if re.search(r"/(jp|en|cn|japanese|english|chinese)(/|-|\.|$)", lower_url):
+        return False
+    # 2. 일본어(히라가나, 가타카나)가 포함된 경우 제외
+    if re.search(r"[\u3040-\u309F\u30A0-\u30FF]", title):
+        return False
+    # 3. 한글이 전혀 없는 경우 (순수 외국어 제목) 제외
+    if not re.search(r"[\uAC00-\uD7A3\u1100-\u11FF]", title):
+        return False
+    return True
+
+
 def collect(sid):
     started = time.monotonic()
     with Session.begin() as db:
@@ -62,6 +76,8 @@ def collect(sid):
             status, body, response = fetch(source.endpoint, source.domain, headers)
             entries = [] if status == 304 else parse_feed(body)
             for entry in entries:
+                if not is_korean_article(entry["title"], entry["url"]):
+                    continue
                 try:
                     validate_url(entry["url"], source.domain)
                 except (ValueError, OSError):

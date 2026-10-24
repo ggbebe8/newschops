@@ -497,3 +497,35 @@ def test_daily_final_window_and_published_coalesce(db):
         r = rank(s, "daily-final", at)
         assert any(e["id"] == "null_pub_issue" for e in r["entries"])
 
+
+def test_is_korean_article_filter():
+    from backend.app.collector import is_korean_article
+
+    # 한국어 정상 기사
+    assert is_korean_article("한국 경제 성장률 전망치 발표", "https://example.com/news/1")
+    assert is_korean_article("[속보] 삼성전자, AI 반도체 발표", "https://example.com/news/2")
+
+    # 일본어 포함 기사 (제외 대상)
+    assert not is_korean_article(
+        "キム・ジソン＆イ・ヒョニ、豊胸から乳腺炎まで…赤裸々トークで一体感『トンチミ",
+        "https://www.chosun.com/jp/culture-life-jp/2026/10/25/abc/",
+    )
+    assert not is_korean_article(
+        "「イ・ガンインがアトレティコを目覚めさせた」スペイン紙",
+        "https://www.chosun.com/jp/sports-jp/2026/10/25/xyz/",
+    )
+
+    # URL 외국어 경로 기사 (제외 대상)
+    assert not is_korean_article(
+        "South Korea economy outlook", "https://example.com/en/news/1"
+    )
+    assert not is_korean_article(
+        "한국어 제목이지만 일본어판 URL", "https://www.chosun.com/jp/news/1"
+    )
+
+    # 한글 미포함 순수 외국어 (제외 대상)
+    assert not is_korean_article(
+        "Global stock markets drop today", "https://example.com/article/1"
+    )
+
+
