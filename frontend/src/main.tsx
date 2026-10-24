@@ -27,6 +27,7 @@ function App() {
     [category, setCategory] = useState(""),
     [source, setSource] = useState(""),
     [q, setQ] = useState(""),
+    [showFilter, setShowFilter] = useState(false),
     [data, setData] = useState<any>({ entries: [] }),
     [sources, setSources] = useState<any[]>([]),
     [detail, setDetail] = useState<any>(null),
@@ -474,28 +475,39 @@ function App() {
                   </button>
                 ))}
               </div>
-              <div className="category-bar">
-                {[
-                  ["", "종합"],
-                  ["정치", "정치"],
-                  ["경제", "경제"],
-                  ["사회", "사회"],
-                  ["국제", "국제"],
-                  ["연예", "연예"],
-                  ["스포츠", "스포츠"],
-                  ["산업/기술", "IT/기술"],
-                  ["문화", "문화"],
-                ].map(([val, label]) => (
-                  <button
-                    key={val}
-                    className={`cat-chip ${category === val ? "active" : ""}`}
-                    onClick={() => setCategory(val)}
-                  >
-                    {label}
-                  </button>
-                ))}
+              <div className="category-row">
+                <div className="category-bar">
+                  {[
+                    ["", "종합"],
+                    ["정치", "정치"],
+                    ["경제", "경제"],
+                    ["사회", "사회"],
+                    ["국제", "국제"],
+                    ["연예", "연예"],
+                    ["스포츠", "스포츠"],
+                    ["산업/기술", "IT/기술"],
+                    ["문화", "문화"],
+                  ].map(([val, label]) => (
+                    <button
+                      key={val}
+                      className={`cat-chip ${category === val ? "active" : ""}`}
+                      onClick={() => setCategory(val)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  className={`search-toggle-btn ${showFilter || q || source ? "active" : ""}`}
+                  onClick={() => setShowFilter(!showFilter)}
+                  aria-label="검색 및 필터 열기/닫기"
+                  title="검색 및 필터"
+                >
+                  <span className="search-icon">🔍</span>
+                  {(q || source) && <span className="filter-badge" />}
+                </button>
               </div>
-              <div className="filters">
+              <div className={`filters ${showFilter || q || source ? "open" : ""}`}>
                 <select
                   aria-label="언론사"
                   value={source}
