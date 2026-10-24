@@ -349,7 +349,7 @@ def test_source_feed_fixtures(source_id):
 
 def test_nonstandard_rfc_date_and_modified_are_distinct():
     result = parse_feed(
-        b'<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/"><channel><item><title>x</title><link>https://example.com/1</link><pubDate>Sun,25 Oct 2026 05:52:56 +0900</pubDate></item><item><title>y</title><link>https://example.com/2</link><dc:date>2026-10-25T06:00:02+09:00</dc:date></item></channel></rss>'
+        b'<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/"><channel><item><title>x</title><link>https://example.com/1</link><pubDate>Sun,25 Oct 2026 05:52:56 +0900</pubDate></item><item><title>y</title><link>https://example.com/2</link><dc:date>2026-10-25T07:00:02+09:00</dc:date></item></channel></rss>'
     )
     assert result[0]["published"] == datetime(
         2026, 10, 24, 20, 52, 56, tzinfo=timezone.utc
@@ -357,3 +357,143 @@ def test_nonstandard_rfc_date_and_modified_are_distinct():
     assert result[0]["modified"] is None
     assert result[1]["published"] is None
     assert result[1]["modified"] is not None
+
+
+def test_multi_source_spread_boosts_ranking(db):
+    from backend.app.db import Source
+
+    at = datetime(2026, 10, 25, 12, tzinfo=timezone.utc)
+    with db.begin() as s:
+        s.add(
+            Source(
+                id="src_a",
+                name="A일보",
+                domain="a.com",
+                endpoint="https://a.com",
+            )
+        )
+        s.add(
+            Source(
+                id="src_b",
+                name="B뉴스",
+                domain="b.com",
+                endpoint="https://b.com",
+            )
+        )
+        # 3일 전 다수 매체 보도 이슈 (major)
+        three_days_ago = at - timedelta(days=3)
+        s.add(
+            Issue(
+                id="major",
+                title="주요 대형 사건",
+                occurred=three_days_ago,
+                discovered=three_days_ago,
+            )
+        )
+        s.flush()
+        s.add(
+            Article(
+                id="art_a",
+                issue_id="major",
+                source_id="src_a",
+                title="주요 대형 사건",
+                url="https://a.com/major",
+                origin="unknown:major",
+                published=three_days_ago,
+                discovered=three_days_ago,
+                collected=three_days_ago,
+            )
+        )
+        s.add(
+            Article(
+                id="art_b",
+                issue_id="major",
+                source_id="src_b",
+                title="주요 대형 사건",
+                url="https://b.com/major",
+                origin="unknown:major",
+                published=three_days_ago,
+                discovered=three_days_ago,
+                collected=three_days_ago,
+            )
+        )
+        # 10분 전 단일 매체 단신 이슈 (minor)
+        ten_mins_ago = at - timedelta(minutes=10)
+        s.add(
+            Issue(
+                id="minor",
+                title="방금 올라온 단신",
+                occurred=ten_mins_ago,
+                discovered=ten_mins_ago,
+            )
+        )
+        s.flush()
+        s.add(
+            Article(
+                id="art_c",
+                issue_id="minor",
+                source_id="src_a",
+                title="방금 올라온 단신",
+                url="https://a.com/minor",
+                origin="unknown:minor",
+                published=ten_mins_ago,
+                discovered=ten_mins_ago,
+                collected=ten_mins_ago,
+            )
+        )
+
+    with db() as s:
+        r = rank(s, "week", at)
+        entries = r["entries"]
+        assert len(entries) == 2
+        # major 이슈가 2개 매체 보도로 확산도(k=2) 가점을 받아 1위를 차지해야 함
+        assert entries[0]["id"] == "major"
+        assert entries[0]["independent_origins"] == 2
+        assert entries[0]["score"] > entries[1]["score"]
+        assert entries[1]["id"] == "minor"
+        assert entries[1]["independent_origins"] == 0
+
+
+def test_daily_final_window_and_published_coalesce(db):
+    from backend.app.db import Source
+
+    # at: 2026-10-25 15:00 UTC (KST 2026-10-26 00:00)
+    at = datetime(2026, 10, 25, 15, tzinfo=timezone.utc)
+    yesterday_pub = datetime(2026, 10, 24, 20, tzinfo=timezone.utc)  # KST 10-25 05:00
+    with db.begin() as s:
+        s.add(
+            Source(
+                id="src_null",
+                name="무일자일보",
+                domain="null.com",
+                endpoint="https://null.com",
+            )
+        )
+        s.add(
+            Issue(
+                id="null_pub_issue",
+                title="발행일자 결측 기사",
+                occurred=yesterday_pub,
+                discovered=yesterday_pub,
+            )
+        )
+        s.flush()
+        s.add(
+            Article(
+                id="null_pub_art",
+                issue_id="null_pub_issue",
+                source_id="src_null",
+                title="발행일자 결측 기사",
+                url="https://null.com/1",
+                origin="unknown:null",
+                published=None,  # pubDate 결측
+                discovered=yesterday_pub,
+                collected=yesterday_pub,
+            )
+        )
+
+    with db() as s:
+        # daily-final 구간에 coalesce(published, discovered)로 정상 포함되어야 함
+        r = rank(s, "daily-final", at)
+        assert any(e["id"] == "null_pub_issue" for e in r["entries"])
+

@@ -60,7 +60,7 @@ def score(k, h, half, prominence=None, impact=None):
 
 
 def rank(db, period, at):
-    from sqlalchemy import select
+    from sqlalchemy import select, func
     from .db import Issue, Article, Source, Placement
 
     start, end, half = window(period, at)
@@ -68,15 +68,18 @@ def rank(db, period, at):
     all_sources = list(db.scalars(select(Source)))
     sources = {s.id: s.name for s in all_sources}
     eligible = select(Issue.id).where(
-        Issue.occurred >= start, Issue.occurred < end, Issue.discovered < end
+        Issue.occurred >= start,
+        Issue.occurred < end,
+        Issue.discovered <= at,
     )
     issues = list(db.scalars(select(Issue).where(Issue.id.in_(eligible))))
+    effective_pub = func.coalesce(Article.published, Article.discovered)
     article_query = select(Article).where(
         Article.issue_id.in_(eligible),
-        Article.discovered < end,
+        Article.discovered <= at,
         Article.collected <= at,
-        Article.published >= start,
-        Article.published < end,
+        effective_pub >= start,
+        effective_pub < end,
     )
     by_issue = {}
     for article in db.scalars(article_query):
@@ -84,10 +87,10 @@ def rank(db, period, at):
     by_article = {}
     article_ids = select(Article.id).where(
         Article.issue_id.in_(eligible),
-        Article.discovered < end,
+        Article.discovered <= at,
         Article.collected <= at,
-        Article.published >= start,
-        Article.published < end,
+        effective_pub >= start,
+        effective_pub < end,
     )
     for observation in db.scalars(
         select(Placement).where(
@@ -99,8 +102,14 @@ def rank(db, period, at):
         articles = by_issue.get(issue.id, [])
         if not articles:
             continue
-        # Unknown independence never increases spread. Exact title origin is shared across outlets.
-        k = len({a.origin for a in articles if a.origin.startswith("known:")})
+        known_count = len({a.origin for a in articles if a.origin.startswith("known:")})
+        distinct_sources = len({a.source_id for a in articles})
+        if known_count > 0:
+            k = known_count
+        elif distinct_sources >= 2:
+            k = distinct_sources
+        else:
+            k = 0
         placements = {}
         placement_evidence = []
         for a in articles:
@@ -127,6 +136,11 @@ def rank(db, period, at):
             half,
             prominence=prominence,
         )
+        confidence = (
+            f"독립 보도 {k}개 매체 확인 · 확산도 반영"
+            if k >= 2
+            else "제한적 · 제목 기반 / 독립 취재 미확인"
+        )
         candidates.append(
             {
                 "id": issue.id,
@@ -134,11 +148,11 @@ def rank(db, period, at):
                 "url": articles[0].url if articles else "",
                 "category": issue.category,
                 "occurred": utc(issue.occurred).isoformat(),
-                "sources": sorted({sources[a.source_id] for a in articles}),
+                "sources": sorted({sources.get(a.source_id, a.source_id) for a in articles}),
                 "articles": [a.id for a in articles],
                 "independent_origins": k,
                 "placement_evidence": placement_evidence,
-                "confidence": "제한적 · 제목 기반 / 독립 취재 미확인",
+                "confidence": confidence,
                 **breakdown,
             }
         )

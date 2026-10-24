@@ -100,3 +100,15 @@
 
 - "THE DAILY BRIEFING / 오늘, 알아야 할 이야기 / 흩어진 뉴스를 모아..." 거대 헤더 영역 제거.
 - 기간 탭과 분야 칩, 뉴스 카드가 바로 보이도록 화면 레이아웃 최적화.
+
+## 버그 수정: 주간 종합 및 기간별 순위 산출 로직 정상화
+
+- **원인 분석**:
+  1. `ranking.py`에서 `k = len({a.origin for a in articles if a.origin.startswith("known:")})`로 고정되어 있었으나, 수집 기사는 모두 `origin="unknown:..."`으로 저장되어 `k=0`, `spread=0`으로 고정됨. 이로 인해 모든 기간(주간, 최근 7일 등)에서 점수가 100% 최신 발행 시각(`recency`)에만 의존하여 방금 수집된 당일 단신 기사가 주간 1~10위를 독식하는 결함 발생.
+  2. `daily-final` 및 `weekly-final`에서 `Issue.discovered < end`, `Article.discovered < end` 조건으로 인해 당일 최초 가동 시점 이후 수집된 과거 발행 기사들이 탈락하여 결과가 0건으로 비는 현상 발생.
+  3. `Article.published` NULL 기사(한겨레 등)가 SQL 기간 쿼리에서 누락되는 결함.
+- **수정 내용**:
+  1. 확산도 `k` 계산 시 확인된 독립 origin(`known:`) 우선 반영, origin 증거가 없는 경우 2곳 이상의 복수 매체가 보도한 이슈에 대해 보도 매체 수(`distinct_sources`)를 확산도로 반영하도록 개선.
+  2. 기간 윈도우 필터를 `coalesce(Article.published, Article.discovered) >= start, < end` 및 `Article.collected <= at`, `Issue.discovered <= at`로 수정하여 과거 확정 기간 정상화 및 결측 기사 누락 방지.
+  3. 주간(`week`), 최근 7일(`7days`), 일간 확정(`daily-final`), 오늘(`today`), 1시간(`hour`), 현재(`current`) 전체 스냅샷 재계산 및 검증.
+- **검증**: pytest 25개 통과(다수 매체 확산도 가점 순위 검증, 일간 확정 coalesce 윈도우 검증 추가), 전체 기간 API 실측 응답 10건 정상 확인, 컨테이너 빌드 및 재기동 완료.
