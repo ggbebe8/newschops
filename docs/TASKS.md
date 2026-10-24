@@ -44,9 +44,15 @@
 ## 최종 인계 확인
 
 - migration003 이후 최종 백업도 별도 시험 DB에 복구했다. 사용자1명·기사593건·지면66건·schema003 확인 후 시험 DB만 삭제했다.
-- 운영 앱은 http://localhost:8080 에서 실행 중이다. 임시 newschops-verify 프로젝트 컨테이너는 제거했고 별도 시험 볼륨은 보존했다.
+- 운영 앱은 http://localhost:38475 에서 실행 중이다. 임시 newschops-verify 프로젝트 컨테이너는 제거했고 별도 시험 볼륨은 보존했다.
 - 최종 비밀 검사: 실제 .env의 DB 비밀번호·관리자 비밀번호·세션 비밀·AI 키가 staged 파일에 없는지 검사했고 통과했다. .env/node_modules/백업은 추적되지 않는다. `git diff --cached --check` 통과.
 - 초기 커밋을 `git -c user.useConfigOnly=true commit`으로 실제 시도했으나 `Author identity unknown` / 이메일 미설정으로 종료128. 임의 작성자 추론을 차단했다. 프로젝트 파일72개는 stage 상태이며 커밋 해시는 없다.
 - 최종 재기동 후 HTTP/DB 통합 검증 재통과. 수집이 계속되어 당시 기사596건·이슈581개·snapshot17개, 현재 순위 재계산133.98ms였다. 앞선593건 조건의128.73ms 측정과 구분한다.
 
 - 작성자 차단 해소: 사용자가 pscho / ggbebe7@gmail.com을 지정했다. 이 저장소의 로컬 Git 설정에 적용하고 한국어 초기 커밋을 진행했다. 커밋 해시는 Git log로 확인하며 전역 설정과 원격은 변경하지 않았다.
+
+## 유지보수: 호스트 포트 변경
+
+- 사용자 요청으로 다른 서비스의 Docker 포트와 TCP listen 목록을 확인했다.38471/38473/38501 사용 중,38475는 미사용이었다. 기본값·로컬 .env의 APP_PORT 및 APP_ORIGIN을38475로 변경하고 컨테이너 내부8080을 유지했다.
+- 브라우저 검증은 .env의 APP_ORIGIN 또는 TEST_BASE_URL을 사용하도록 수정했다. 관리자 교체 방법을 운영 문서에 추가했다.
+- 검증: Compose 설정 검사·재빌드/재기동 성공. 새38475 health200 및 기존8080 listen 해제 확인. pytest22개 통과, 새 주소에서 Chromium 로그인/관리자 메뉴/지면/설정/360·768·1440px/manifest·아이콘/로그아웃 검증 통과. DB migration/사용자 계정 변경 없음.

@@ -8,7 +8,7 @@ Docker/Compose가 필요하다. .env 준비 후 `docker compose up -d --build`. 
 
 ## HTTPS
 
-1. 기존 HTTPS reverse proxy: APP_ORIGIN=https://news.example.com, APP_BIND=127.0.0.1. 프록시는 localhost:8080으로 전달한다. 앱은 전달 헤더를 신뢰하지 않고 APP_ORIGIN으로 쿠키/CSRF를 판단한다. 현재는 전달 IP 대신 직접 peer IP로 로그인 제한되므로 프록시 뒤 사용자는 제한 버킷을 공유한다. 외부 edge에도 로그인 속도 제한 권장.
+1. 기존 HTTPS reverse proxy: APP_ORIGIN=https://news.example.com, APP_BIND=127.0.0.1. 프록시는 localhost:38475으로 전달한다. 앱은 전달 헤더를 신뢰하지 않고 APP_ORIGIN으로 쿠키/CSRF를 판단한다. 현재는 전달 IP 대신 직접 peer IP로 로그인 제한되므로 프록시 뒤 사용자는 제한 버킷을 공유한다. 외부 edge에도 로그인 속도 제한 권장.
 2. Caddy: DOMAIN=news.example.com, TLS_EMAIL, APP_ORIGIN=https://news.example.com. `docker compose --profile tls up -d --build`. DNS A/AAAA와 80/443 접근은 사용자 인프라 사전조건. app은 기본 loopback에만 노출된다. Caddy가 HTTPS를 종료하므로 Secure 쿠키가 설정된다.
 
 공개 회원가입 없음. 관리자 생성/비활성화/초기화 API는 관리자 세션+CSRF 필요. `/api/admin/users` GET/POST, `POST /api/admin/users/{id}/disable`, `POST /api/admin/users/{id}/reset-password` (username/password JSON). 사용자 생성/비활성화/초기화는 관리자 사용자 관리 화면에서도 제공한다. 비밀번호 변경/초기화 시 모든 기존 세션 폐기. 세션 만료12시간. 로그인 15분10회(프로세스 메모리; app 단일 프로세스 기준).
@@ -35,3 +35,9 @@ docker compose exec -T db dropdb -U newschops newschops_restore_test
 실패 매체만 지수 backoff(15분~4시간). 429 Retry-After 초/HTTP-date를 존중하며 backoff에 jitter를 더한다. 수집 동시성 기본3, timeout10초, 응답2MB, redirect최대4. worker 전체 세션 advisory lock은 연결이 끊기면 PostgreSQL이 해제한다. 재시작 시 현재 슬롯과 기한지난 수집만 수행한다. 무거운 전체 백필 없음.
 
 PWA는 정적 assets/icons/오프라인 안내만 캐시. API/index 사용자 데이터 캐시 제외, 모든 API no-store. 로그아웃은 세션 폐기·화면 초기화·사용자 캐시 삭제. 사용자 데이터 캐시는 생성하지 않으며 정적 셸 캐시는 유지한다. Android/iOS 실제 설치 시험은 별도 기기 필요. 서비스워커 설치/업데이트를 위해 HTTPS 또는 localhost 사용.
+
+## 관리자 계정 교체
+
+기존 관리자 로그인 → 사용자 관리에서 새 아이디/비밀번호와 관리자 권한으로 계정 생성 → 로그아웃 후 새 관리자 로그인 → 사용자 관리에서 기존 admin 비활성화. 자기 계정 비활성화는 차단된다. 비밀번호만 바꾸려면 개인 설정에서 변경하며 기존 세션은 폐기된다. ADMIN_USERNAME/ADMIN_PASSWORD 환경변수는 최초 설치에만 사용하므로 기존 계정의 이름이나 비밀번호 변경 수단이 아니다.
+
+호스트 기본 포트는38475, 컨테이너 내부는8080이다. 다른 서비스의38471/38473/38501 사용을 확인한 뒤 선택했다. 포트를 바꾸면 APP_PORT와 HTTP 접속용 APP_ORIGIN을 함께 갱신한다. HTTPS 프록시 사용 시 APP_ORIGIN은 실제 도메인으로 유지한다.

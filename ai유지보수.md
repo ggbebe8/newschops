@@ -53,7 +53,7 @@ git log -5 --oneline
 | 기본 브랜치 | main. 사용자 지정 작성자 pscho / ggbebe7@gmail.com, 저장소 로컬 설정. 초기 커밋은 Git log로 확인 |
 | 애플리케이션/worker/프런트 | backend/app/main.py, worker.py, frontend/src/main.tsx |
 | DB migration | backend/migrations, 현재 003. 001 스키마는 schema_v1.py에 동결 |
-| Compose 서비스·포트 | db, migrate, app, worker; 선택 caddy(tls). 앱127.0.0.1:8080, DB포트 비공개 |
+| Compose 서비스·포트 | db, migrate, app, worker; 선택 caddy(tls). 앱127.0.0.1:38475, DB포트 비공개 |
 | 실행 | .env 준비 후 docker compose up -d --build |
 | 검증 | pytest22개, TS/Vite빌드, 실제HTTP/PG잠금, 빈DB기동, 백업복구, Chromium360/768/1440 통과 |
 | 활성10개 소스 | 동아·조선·서울·한겨레·경향·세계·연합·SBS·매경·한경. worker10곳정상, 별도 smoke경제지2곳403 기록 |
@@ -164,3 +164,6 @@ Git author 미설정, 권한 문제, 비밀 검출 등으로 커밋 불가하면
 - 다음 작업: 실제 Git/서비스 상태 확인 후 TASKS의 남은 기능 순서로 진행.
 - DB: migration003. 실제DB를교체하지않은별도시험DB복구검증. 업데이트전새백업필요.
 - 최종 확인: 최초 커밋 시도는 작성자 미설정으로 실패했으나, 사용자 제공 작성자로 해소했다. 실제 비밀·런타임 파일 추적 검사와 diff 공백 검사를 통과했다. 커밋 해시는 Git log에서 확인한다.
+
+- 포트 변경: 다른 서비스의38471/38473/38501 사용을 확인하고 호스트38475로 변경했다. 컨테이너 내부8080은 유지한다. 관리자 교체는 새 관리자 생성→새 계정 로그인→기존 관리자 비활성화로 가능하며 환경변수는 최초 생성용이다.
+- 포트 변경 검증: Compose 재기동,38475 health200,8080 해제,pytest22개 및 새 주소 브라우저 검증 통과. 계정은 변경하지 않았다.

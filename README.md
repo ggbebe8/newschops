@@ -15,7 +15,7 @@ docker compose up -d --build
 
 또는 `.env.example`을 `.env`로 복사해 DB_PASSWORD(URL-safe), ADMIN_PASSWORD(14자 이상), SESSION_SECRET(32자 이상)를 채운 뒤 동일 Compose 명령을 실행한다. 기본/빈 비밀번호면 초기화 서비스가 실패한다. `.env` 값에 `$`가 있으면 Compose 보간 방지를 위해 작은따옴표로 감싼다. .env는 Git 제외 및 권한600 유지.
 
-접속: **http://localhost:8080**. 최초 계정은 .env의 ADMIN_USERNAME(기본 admin)과 ADMIN_PASSWORD. 비밀번호는 문서/로그에 출력하지 않는다. 개인 설정에서 변경 가능하며 재로그인이 필요하다. 재시작 시 비밀번호를 덮어쓰지 않는다. DB는 호스트 포트를 공개하지 않는다. 앱 기본 bind127.0.0.1, 외부 접근은 아래 HTTPS 설정을 사용한다.
+접속: **http://localhost:38475**. 최초 계정은 .env의 ADMIN_USERNAME(기본 admin)과 ADMIN_PASSWORD. 비밀번호는 문서/로그에 출력하지 않는다. 개인 설정에서 변경 가능하며 재로그인이 필요하다. 재시작 시 비밀번호를 덮어쓰지 않는다. DB는 호스트 포트를 공개하지 않는다. 앱 기본 bind127.0.0.1, 외부 접근은 아래 HTTPS 설정을 사용한다.
 
 설치 후 첫 수집을 기다린다. 초기 순위는 worker가 현재 시간 슬롯에 생성한다. 순위는 매시간 갱신되므로 이후 수집 기사는 다음 슬롯부터 반영된다. 분야/매체/관심 탐색은 저장된 전체 기사에서 필터링한다. 샘플 뉴스를 시드하지 않는다.
 

@@ -43,7 +43,7 @@ def db(monkeypatch):
 
 def test_auth_csrf_roles_and_logout(db):
     c = TestClient(main.app)
-    h = {"Origin": "http://localhost:8080"}
+    h = {"Origin": "http://localhost:38475"}
     assert c.get("/api/admin/status").status_code == 401
     assert (
         c.post(
@@ -74,7 +74,7 @@ def test_auth_csrf_roles_and_logout(db):
 def test_user_isolation_and_password_revoke(db):
     a = TestClient(main.app)
     b = TestClient(main.app)
-    h = {"Origin": "http://localhost:8080"}
+    h = {"Origin": "http://localhost:38475"}
     ra = a.post(
         "/api/login",
         headers=h,

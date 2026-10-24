@@ -15,7 +15,7 @@ from .ranking import utc
 from .paper import article_key
 
 app = FastAPI(title="newschops", docs_url=None, redoc_url=None, openapi_url=None)
-ORIGIN = os.getenv("APP_ORIGIN", "http://localhost:8080").rstrip("/")
+ORIGIN = os.getenv("APP_ORIGIN", "http://localhost:38475").rstrip("/")
 ph = PasswordHasher()
 attempts = defaultdict(list)
 
