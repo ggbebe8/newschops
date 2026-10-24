@@ -56,6 +56,70 @@ function App() {
     }
     return r.json();
   }
+
+  function getTabFromHash() {
+    const h = location.hash.replace(/^#/, "");
+    if (h.startsWith("detail-")) return null;
+    if (
+      ["news", "paper", "interest", "saved", "settings", "users", "admin"].includes(
+        h,
+      )
+    ) {
+      return h;
+    }
+    return null;
+  }
+
+  function navigateTab(newTab: string) {
+    if (tab === newTab && !detail) return;
+    setTab(newTab);
+    setDetail(null);
+    history.pushState({ tab: newTab, detailId: null }, "", "#" + newTab);
+  }
+
+  function openDetail(issueId: string) {
+    history.pushState({ tab, detailId: issueId }, "", "#detail-" + issueId);
+    api("/issues/" + issueId)
+      .then(setDetail)
+      .catch((e) => setError(e.message));
+  }
+
+  function closeDetail() {
+    if (location.hash.startsWith("#detail-")) {
+      history.back();
+    } else {
+      setDetail(null);
+    }
+  }
+
+  useEffect(() => {
+    const initialTab = getTabFromHash() || "news";
+    setTab(initialTab);
+    if (!history.state) {
+      history.replaceState(
+        { tab: initialTab, detailId: null },
+        "",
+        location.hash || "#" + initialTab,
+      );
+    }
+
+    const onPopState = (e: PopStateEvent) => {
+      const h = location.hash.replace(/^#/, "");
+      if (h.startsWith("detail-")) {
+        const detailId = h.replace("detail-", "");
+        api("/issues/" + detailId)
+          .then(setDetail)
+          .catch((err) => setError(err.message));
+      } else {
+        setDetail(null);
+        const targetTab = e.state?.tab || getTabFromHash() || "news";
+        setTab(targetTab);
+      }
+    };
+
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
   useEffect(() => {
     fetch("/api/me")
       .then((r) => (r.ok ? r.json() : null))
@@ -207,7 +271,7 @@ function App() {
               <button
                 className={tab === id ? "active" : ""}
                 key={id}
-                onClick={() => setTab(id)}
+                onClick={() => navigateTab(id)}
               >
                 <span>{icon}</span>
                 {label}
@@ -374,7 +438,7 @@ function App() {
             </>
           ) : detail ? (
             <>
-              <button onClick={() => setDetail(null)}>← 뉴스 목록</button>
+              <button onClick={closeDetail}>← 뉴스 목록</button>
               <div className="eyebrow">ISSUE BRIEFING</div>
               <h1>{detail.title}</h1>
               {detail.comparison && !detail.comparison.startsWith("비교 불가") && (
@@ -538,11 +602,7 @@ function App() {
                       ) : (
                         <button
                           className="headline"
-                          onClick={() =>
-                            api("/issues/" + r.id)
-                              .then(setDetail)
-                              .catch((e) => setError(e.message))
-                          }
+                          onClick={() => openDetail(r.id)}
                         >
                           {r.title}
                         </button>
@@ -552,11 +612,7 @@ function App() {
                         {r.sources.length > 1 && (
                           <button
                             className="compare-link"
-                            onClick={() =>
-                              api("/issues/" + r.id)
-                                .then(setDetail)
-                                .catch((e) => setError(e.message))
-                            }
+                            onClick={() => openDetail(r.id)}
                           >
                             매체별 보도 ({r.sources.length}개)
                           </button>
