@@ -210,8 +210,20 @@ def rankings(
             for s in db.scalars(select(State).where(State.user_id == user.id))
         }
         entries = []
+        missing_url_ids = [
+            original["id"] for original in data.get("entries", []) if not original.get("url")
+        ]
+        url_map = {}
+        if missing_url_ids:
+            for a in db.scalars(select(Article).where(Article.issue_id.in_(missing_url_ids))):
+                if a.issue_id not in url_map:
+                    url_map[a.issue_id] = a.url
         for original in data["entries"]:
-            r = {**original, "state": states.get(original["id"], {})}
+            r = {
+                **original,
+                "url": original.get("url") or url_map.get(original["id"], ""),
+                "state": states.get(original["id"], {}),
+            }
             if (
                 r["state"].get("hidden")
                 or category
@@ -295,6 +307,7 @@ def feed(
                 {
                     "id": i.id,
                     "title": i.title,
+                    "url": articles[0].url if articles else "",
                     "category": i.category,
                     "occurred": i.occurred,
                     "time_estimated": i.time_estimated,

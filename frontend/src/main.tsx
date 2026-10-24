@@ -526,18 +526,41 @@ function App() {
                         <span>{r.sources.length}개 매체</span>
                         <span>{fmt(r.occurred)}</span>
                       </div>
-                      <button
-                        className="headline"
-                        onClick={() =>
-                          api("/issues/" + r.id)
-                            .then(setDetail)
-                            .catch((e) => setError(e.message))
-                        }
-                      >
-                        {r.title}
-                      </button>
+                      {r.url ? (
+                        <a
+                          href={r.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="headline"
+                        >
+                          {r.title} <span className="link-ext">↗</span>
+                        </a>
+                      ) : (
+                        <button
+                          className="headline"
+                          onClick={() =>
+                            api("/issues/" + r.id)
+                              .then(setDetail)
+                              .catch((e) => setError(e.message))
+                          }
+                        >
+                          {r.title}
+                        </button>
+                      )}
                       <div className="source-line">
-                        {r.sources.join(" · ")}
+                        <span>{r.sources.join(" · ")}</span>
+                        {r.sources.length > 1 && (
+                          <button
+                            className="compare-link"
+                            onClick={() =>
+                              api("/issues/" + r.id)
+                                .then(setDetail)
+                                .catch((e) => setError(e.message))
+                            }
+                          >
+                            매체별 보도 ({r.sources.length}개)
+                          </button>
+                        )}
                         {r.match_reason && (
                           <span> · 관심 일치: {r.match_reason.join(", ")}</span>
                         )}

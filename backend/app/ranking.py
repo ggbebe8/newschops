@@ -131,6 +131,7 @@ def rank(db, period, at):
             {
                 "id": issue.id,
                 "title": issue.title,
+                "url": articles[0].url if articles else "",
                 "category": issue.category,
                 "occurred": utc(issue.occurred).isoformat(),
                 "sources": sorted({sources[a.source_id] for a in articles}),
