@@ -190,6 +190,84 @@ def rank(db, period, at):
             by_category[cat] = []
         if len(by_category[cat]) < 10:
             by_category[cat].append(c)
+
+    # 보수 / 진보 성향별 TOP 10 산출
+    conservative_sources = {"chosun", "donga", "mk", "hankyung", "segye"}
+    progressive_sources = {"hani", "khan", "seoul"}
+
+    cons_candidates = []
+    prog_candidates = []
+    for issue in issues:
+        articles = by_issue.get(issue.id, [])
+        if not articles:
+            continue
+        if re.search(r"[\u3040-\u309F\u30A0-\u30FF]", issue.title):
+            continue
+
+        c_articles = [a for a in articles if a.source_id in conservative_sources]
+        if c_articles:
+            k_c = len({a.source_id for a in c_articles})
+            k_val = k_c if k_c >= 2 else 0
+            h = (end - utc(issue.occurred)).total_seconds() / 3600
+            bd = score(k_val, h, half)
+            cons_candidates.append(
+                {
+                    "id": issue.id,
+                    "title": issue.title,
+                    "url": c_articles[0].url,
+                    "category": issue.category,
+                    "occurred": utc(issue.occurred).isoformat(),
+                    "sources": sorted({sources.get(a.source_id, a.source_id) for a in c_articles}),
+                    "articles": [a.id for a in c_articles],
+                    "independent_origins": k_val,
+                    "placement_evidence": [],
+                    "confidence": f"보수 언론 {k_c}곳 보도" if k_c >= 2 else "보수 언론 단독 보도",
+                    **bd,
+                }
+            )
+
+        p_articles = [a for a in articles if a.source_id in progressive_sources]
+        if p_articles:
+            k_p = len({a.source_id for a in p_articles})
+            k_val = k_p if k_p >= 2 else 0
+            h = (end - utc(issue.occurred)).total_seconds() / 3600
+            bd = score(k_val, h, half)
+            prog_candidates.append(
+                {
+                    "id": issue.id,
+                    "title": issue.title,
+                    "url": p_articles[0].url,
+                    "category": issue.category,
+                    "occurred": utc(issue.occurred).isoformat(),
+                    "sources": sorted({sources.get(a.source_id, a.source_id) for a in p_articles}),
+                    "articles": [a.id for a in p_articles],
+                    "independent_origins": k_val,
+                    "placement_evidence": [],
+                    "confidence": f"진보 언론 {k_p}곳 보도" if k_p >= 2 else "진보 언론 단독 보도",
+                    **bd,
+                }
+            )
+
+    cons_candidates.sort(
+        key=lambda r: (
+            -r["score"],
+            -r["independent_origins"],
+            -datetime.fromisoformat(r["occurred"]).timestamp(),
+            r["id"],
+        )
+    )
+    prog_candidates.sort(
+        key=lambda r: (
+            -r["score"],
+            -r["independent_origins"],
+            -datetime.fromisoformat(r["occurred"]).timestamp(),
+            r["id"],
+        )
+    )
+
+    by_category["보수"] = cons_candidates[:10]
+    by_category["진보"] = prog_candidates[:10]
+
     coverage = {
         s.id: s.state for s in all_sources if not (s.capabilities or {}).get("archived")
     }

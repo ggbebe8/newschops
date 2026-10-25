@@ -233,14 +233,12 @@ def rankings(
                 "url": original.get("url") or url_map.get(original["id"], ""),
                 "state": states.get(original["id"], {}),
             }
+            is_stance = category in ("보수", "진보")
             if (
                 r["state"].get("hidden")
-                or category
-                and r["category"] != category
-                or source
-                and source not in r["sources"]
-                or q
-                and q not in r["title"]
+                or (category and not is_stance and r["category"] != category)
+                or (source and source not in r["sources"])
+                or (q and q not in r["title"])
             ):
                 continue
             if view == "saved" and not r["state"].get("saved"):

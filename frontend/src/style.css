@@ -315,6 +315,14 @@ input {
   border-color: var(--green);
   font-weight: 700;
 }
+.cat-chip[data-cat="보수"].active {
+  background: #c62828;
+  border-color: #c62828;
+}
+.cat-chip[data-cat="진보"].active {
+  background: #1565c0;
+  border-color: #1565c0;
+}
 .category-row {
   display: flex;
   align-items: center;

@@ -12,10 +12,9 @@ type User = {
 const periods = [
   ["current", "현재 TOP 10"],
   ["hour", "최근 1시간"],
-  ["today", "오늘"],
-  ["daily-final", "일간 확정"],
+  ["daily-final", "어제 마감"],
   ["week", "이번 주"],
-  ["weekly-final", "주간 확정"],
+  ["weekly-final", "지난주 마감"],
   ["7days", "최근 7일"],
 ];
 function App() {
@@ -478,7 +477,9 @@ function App() {
               <div className="category-row">
                 <div className="category-bar">
                   {[
-                    ["", "종합"],
+                    ["", "전체 종합"],
+                    ["보수", "보수 언론"],
+                    ["진보", "진보 언론"],
                     ["정치", "정치"],
                     ["경제", "경제"],
                     ["사회", "사회"],
@@ -490,6 +491,7 @@ function App() {
                   ].map(([val, label]) => (
                     <button
                       key={val}
+                      data-cat={val}
                       className={`cat-chip ${category === val ? "active" : ""}`}
                       onClick={() => setCategory(val)}
                     >

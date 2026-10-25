@@ -529,3 +529,84 @@ def test_is_korean_article_filter():
     )
 
 
+def test_conservative_and_progressive_top10(db):
+    from backend.app.db import Source
+
+    at = datetime(2026, 10, 25, 12, tzinfo=timezone.utc)
+    with db.begin() as s:
+        s.add(
+            Source(
+                id="chosun",
+                name="조선일보",
+                domain="chosun.com",
+                endpoint="https://chosun.com",
+            )
+        )
+        s.add(
+            Source(
+                id="hani",
+                name="한겨레",
+                domain="hani.co.kr",
+                endpoint="https://hani.co.kr",
+            )
+        )
+
+        # 보수 기사
+        s.add(
+            Issue(
+                id="cons_issue",
+                title="보수 주요 보도 사건",
+                occurred=at - timedelta(hours=1),
+                discovered=at - timedelta(hours=1),
+            )
+        )
+        s.flush()
+        s.add(
+            Article(
+                id="art_chosun",
+                issue_id="cons_issue",
+                source_id="chosun",
+                title="보수 주요 보도 사건",
+                url="https://chosun.com/1",
+                origin="unknown:cons",
+                published=at - timedelta(hours=1),
+                discovered=at - timedelta(hours=1),
+                collected=at - timedelta(hours=1),
+            )
+        )
+
+        # 진보 기사
+        s.add(
+            Issue(
+                id="prog_issue",
+                title="진보 주요 보도 사건",
+                occurred=at - timedelta(hours=2),
+                discovered=at - timedelta(hours=2),
+            )
+        )
+        s.flush()
+        s.add(
+            Article(
+                id="art_hani",
+                issue_id="prog_issue",
+                source_id="hani",
+                title="진보 주요 보도 사건",
+                url="https://hani.co.kr/1",
+                origin="unknown:prog",
+                published=at - timedelta(hours=2),
+                discovered=at - timedelta(hours=2),
+                collected=at - timedelta(hours=2),
+            )
+        )
+
+    with db() as s:
+        r = rank(s, "current", at)
+        by_cat = r.get("by_category", {})
+        assert "보수" in by_cat
+        assert "진보" in by_cat
+        assert any(e["id"] == "cons_issue" for e in by_cat["보수"])
+        assert any(e["id"] == "prog_issue" for e in by_cat["진보"])
+        # 보수 순위에는 진보 기사 미포함
+        assert not any(e["id"] == "prog_issue" for e in by_cat["보수"])
+        # 진보 순위에는 보수 기사 미포함
+        assert not any(e["id"] == "cons_issue" for e in by_cat["진보"])
