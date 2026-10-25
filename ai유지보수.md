@@ -55,8 +55,8 @@ git log -5 --oneline
 | DB migration | backend/migrations, 현재 003. 001 스키마는 schema_v1.py에 동결 |
 | Compose 서비스·포트 | db, migrate, app, worker; 선택 caddy(tls). 앱 0.0.0.0:38475, DB포트 비공개 |
 | 실행 | .env 준비 후 docker compose up -d --build |
-| 검증 | pytest28개, TS/Vite빌드, 실제HTTP/PG잠금, 빈DB기동, 백업복구, Chromium360/768/1440, Caddy 도메인 HTTPS 검증 통과 |
-| 최근 작업 | 통신사(연합·SBS) 전재 가점 배제 및 매체 다양성 캡(특정 언론사 독점 방지) 알고리즘 적용 |
+| 검증 | pytest29개, TS/Vite빌드, 실제HTTP/PG잠금, 빈DB기동, 백업복구, Chromium360/768/1440, Caddy 도메인 HTTPS 검증 통과 |
+| 최근 작업 | 유사도 기반 기사 자동 클러스터링(병합) 엔진 도입 및 DB 기사 전면 재클러스터링으로 복수 매체 종합 보도 정상화 |
 | 활성10개 소스 | 동아·조선·서울·한겨레·경향·세계·연합·SBS·매경·한경. worker10곳정상, 별도 smoke경제지2곳403 기록 |
 | 동아일보 지면 | 공개 지면 목차2026-10-24자66건 실제 저장. 다른9곳미지원. 이미지/PDF접근없음 |
 | AI | 예약환경변수와테이블만존재. 외부호출/예산/캐시 미구현, 키입력만으로활성화안됨 |

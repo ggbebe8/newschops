@@ -646,3 +646,41 @@ def test_wire_reprint_and_source_diversity_cap(db):
         assert wire_item["confidence"] == "통신사 전재 보도"
         # 3개 매체 중 동아일보 포함 복수 보도는 origins >= 2
         assert multi_item["independent_origins"] == 2
+
+
+def test_title_similarity_and_clustering(db):
+    from backend.app.clustering import is_similar_title, clean_title, find_matching_issue, recluster_all
+    from backend.app.db import Source
+
+    # 1. 유사 제목 판별 테스트
+    t1 = "대법원 “입 헹굼 물 안 주고 음주 측정하면, 유죄 증거로 못써”"
+    t2 = "음주측정 전 입 헹굴 물 안 준 경찰…대법 \"유죄 증거로 못 써\""
+    t3 = "전혀 다른 기사 제목 날씨 맑음 소식"
+    assert is_similar_title(t1, t2) is True
+    assert is_similar_title(t1, t3) is False
+
+    # 2. 말머리 제거 테스트
+    t_tagged = "[속보] 제주공항 착륙 앞둔 홍콩익스프레스 기내서 보조배터리 발열…"
+    assert "속보" not in clean_title(t_tagged)
+
+    # 3. recluster_all 동작 테스트
+    at = datetime(2026, 10, 25, 12, tzinfo=timezone.utc)
+    with db.begin() as s:
+        s.add(Source(id="src_a", name="매체A", domain="a.com", endpoint="https://a.com"))
+        s.add(Source(id="src_b", name="매체B", domain="b.com", endpoint="https://b.com"))
+
+        # 기존에 각각 단독 이슈로 잘못 쪼개진 상태
+        s.add(Issue(id="iss_a", title=t1, occurred=at, discovered=at))
+        s.add(Issue(id="iss_b", title=t2, occurred=at, discovered=at))
+        s.flush()
+        s.add(Article(id="art_a", issue_id="iss_a", source_id="src_a", title=t1, url="https://a.com/1", origin="a", published=at, discovered=at, collected=at))
+        s.add(Article(id="art_b", issue_id="iss_b", source_id="src_b", title=t2, url="https://b.com/1", origin="b", published=at, discovered=at, collected=at))
+
+    with db() as s:
+        # 재클러스터링 실행
+        stats = recluster_all(s)
+        assert stats["updated_articles"] >= 1
+        # 두 기사의 issue_id가 하나로 합쳐졌는지 확인
+        art_a = s.get(Article, "art_a")
+        art_b = s.get(Article, "art_b")
+        assert art_a.issue_id == art_b.issue_id

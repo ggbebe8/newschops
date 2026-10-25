@@ -94,21 +94,27 @@ def collect(sid):
                     if entry["modified"] is not None:
                         existing.modified = entry["modified"]
                     continue
-                # Conservative identity: exact normalized title only, within 24h. Similar titles are not auto-merged.
-                key = re.sub(r"\s+", " ", entry["title"]).strip()
+                # 유사도 기반 이슈 클러스터링: 최근 36시간 내 유사 사건이 있으면 해당 Issue에 편입
+                from .clustering import find_matching_issue, clean_title
+
+                key = clean_title(entry["title"])
                 occurred = entry["published"] or now()
-                iid = digest(key + "|" + occurred.strftime("%Y-%m-%d"))
-                if not db.get(Issue, iid):
-                    db.add(
-                        Issue(
-                            id=iid,
-                            title=entry["title"],
-                            category=category(entry["url"], entry["title"]),
-                            occurred=occurred,
-                            time_estimated=entry["published"] is None,
+                matched_issue = find_matching_issue(db, entry["title"], occurred)
+                if matched_issue:
+                    iid = matched_issue.id
+                else:
+                    iid = digest(key + "|" + occurred.strftime("%Y-%m-%d"))
+                    if not db.get(Issue, iid):
+                        db.add(
+                            Issue(
+                                id=iid,
+                                title=entry["title"],
+                                category=category(entry["url"], entry["title"]),
+                                occurred=occurred,
+                                time_estimated=entry["published"] is None,
+                            )
                         )
-                    )
-                    db.flush()
+                        db.flush()
                 db.add(
                     Article(
                         id=aid,
