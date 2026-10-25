@@ -16,7 +16,8 @@
 - `docker compose config --quiet`: 성공.
 - `docker compose up -d --build`: db/migrate/app/worker 기동. app/worker healthcheck 통과. DB 호스트 포트 미공개, 실제 .env는 무작위 생성·권한600·Git 제외.
 - `APP_PORT=18080 docker compose -p newschops-verify up -d --build`: 별도 새 volume/포트에서 한 명령 기동 성공. 활성10곳 정상, 기사593건, 이슈579개, 스냅샷7개, 현재10개 선정. 검증 뒤 시험 프로젝트만 중지/제거하고 볼륨은 보존.
-- 단위/fixture27개 통과: `docker run --rm -v "$PWD:/work" -w /work newschops-test python -m pytest -q`. (기존 22개에서 외국어 필터, 주간 가점, 일간 coalesce, 보수/진보 TOP 10 단위 테스트 추가됨).
+- 단위/fixture28개 통과: `docker run --rm -v "$PWD:/work" -w /work newschops-test python -m pytest -q`. (기존 22개에서 외국어 필터, 주간 가점, 일간 coalesce, 보수/진보 TOP 10, 통신사 전재/매체 다양성 캡 테스트 추가됨).
+- 통신사(연합·SBS) 단순 전재 가점 배제 및 매체 다양성 캡(단일 언론사 최대 3건) 알고리즘 적용으로 특정 매체 편향 독점 해소 완료.
 - 보수(조선·동아·매경·한경·세계) 및 진보(한겨레·경향·서울) 언론별 TOP 10 탭 추가 및 실시간/스냅샷 집계 지원.
 - 기간 탭 정리: '오늘' 탭 통합 제거 및 '현재 TOP 10' 일원화, '일간 확정' -> '어제 마감', '주간 확정' -> '지난주 마감' 명칭 직관화 완료.
 - UI 위계 개편: 최상단 GNB 메뉴에 종합뉴스·보수뉴스·진보뉴스 승격 배치, 관심뉴스 제거, 하위 분야별 카테고리(정치·경제 등) 연동, 저장한 뉴스 단독 뷰 분리 완료.

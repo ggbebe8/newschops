@@ -613,3 +613,36 @@ def test_conservative_and_progressive_top10(db):
         # 보수_정치 등 하위 분야별 키 생성 확인
         assert "보수_정치" in by_cat
         assert "진보_정치" in by_cat
+
+
+def test_wire_reprint_and_source_diversity_cap(db):
+    from backend.app.db import Source
+
+    at = datetime(2026, 10, 25, 12, tzinfo=timezone.utc)
+    with db.begin() as s:
+        s.add(Source(id="yna", name="연합뉴스", domain="yna.co.kr", endpoint="https://yna.co.kr"))
+        s.add(Source(id="sbs", name="SBS", domain="sbs.co.kr", endpoint="https://sbs.co.kr"))
+        s.add(Source(id="donga", name="동아일보", domain="donga.com", endpoint="https://donga.com"))
+
+        # 1. 연합뉴스-SBS 단순 전재 기사 (독립 취재 k 배제되어야 함)
+        s.add(Issue(id="wire_issue", title="단순 전재 기사", occurred=at - timedelta(hours=1), discovered=at - timedelta(hours=1)))
+        s.flush()
+        s.add(Article(id="art_yna", issue_id="wire_issue", source_id="yna", title="단순 전재 기사", url="https://yna.co.kr/w1", origin="unknown:yna", published=at - timedelta(hours=1), discovered=at - timedelta(hours=1), collected=at - timedelta(hours=1)))
+        s.add(Article(id="art_sbs", issue_id="wire_issue", source_id="sbs", title="단순 전재 기사", url="https://sbs.co.kr/w1", origin="unknown:sbs", published=at - timedelta(hours=1), discovered=at - timedelta(hours=1), collected=at - timedelta(hours=1)))
+
+        # 2. 동아일보 포함 3개 매체 복수 보도 기사
+        s.add(Issue(id="multi_issue", title="진짜 복수 취재 기사", occurred=at - timedelta(hours=2), discovered=at - timedelta(hours=2)))
+        s.flush()
+        s.add(Article(id="art_m1", issue_id="multi_issue", source_id="yna", title="진짜 복수 취재 기사", url="https://yna.co.kr/m1", origin="unknown:yna", published=at - timedelta(hours=2), discovered=at - timedelta(hours=2), collected=at - timedelta(hours=2)))
+        s.add(Article(id="art_m2", issue_id="multi_issue", source_id="donga", title="진짜 복수 취재 기사", url="https://donga.com/m1", origin="unknown:donga", published=at - timedelta(hours=2), discovered=at - timedelta(hours=2), collected=at - timedelta(hours=2)))
+
+    with db() as s:
+        r = rank(s, "current", at)
+        wire_item = next(e for e in r["entries"] if e["id"] == "wire_issue")
+        multi_item = next(e for e in r["entries"] if e["id"] == "multi_issue")
+
+        # 단순 전재는 origins == 0
+        assert wire_item["independent_origins"] == 0
+        assert wire_item["confidence"] == "통신사 전재 보도"
+        # 3개 매체 중 동아일보 포함 복수 보도는 origins >= 2
+        assert multi_item["independent_origins"] == 2

@@ -107,9 +107,15 @@ def rank(db, period, at):
         if re.search(r"[\u3040-\u309F\u30A0-\u30FF]", issue.title):
             continue
         known_count = len({a.origin for a in articles if a.origin.startswith("known:")})
-        distinct_sources = len({a.source_id for a in articles})
+        distinct_source_ids = {a.source_id for a in articles}
+        distinct_sources = len(distinct_source_ids)
+        # 통신사(연합뉴스)-방송사(SBS) 단순 전재 감지:
+        # 두 매체만 동일 제목으로 보도된 경우 통신사 전재로 취급하여 독립 취재 가점(k) 배제
+        is_wire_reprint = distinct_source_ids == {"yna", "sbs"}
         if known_count > 0:
             k = known_count
+        elif is_wire_reprint:
+            k = 0
         elif distinct_sources >= 2:
             k = distinct_sources
         else:
@@ -141,7 +147,9 @@ def rank(db, period, at):
             prominence=prominence,
         )
         confidence = (
-            f"독립 보도 {k}개 매체 확인 · 확산도 반영"
+            "통신사 전재 보도"
+            if is_wire_reprint
+            else f"독립 보도 {k}개 매체 확인 · 확산도 반영"
             if k >= 2
             else "제한적 · 제목 기반 / 독립 취재 미확인"
         )
@@ -153,6 +161,7 @@ def rank(db, period, at):
                 "category": issue.category,
                 "occurred": utc(issue.occurred).isoformat(),
                 "sources": sorted({sources.get(a.source_id, a.source_id) for a in articles}),
+                "source_ids": sorted(distinct_source_ids),
                 "articles": [a.id for a in articles],
                 "independent_origins": k,
                 "placement_evidence": placement_evidence,
@@ -169,19 +178,23 @@ def rank(db, period, at):
             r["id"],
         )
     )
-    counts = Counter()
+    cat_counts = Counter()
+    src_counts = Counter()
     chosen = []
     rest = []
     for c in candidates:
-        if counts[c["category"]] < 4 and len(chosen) < 10:
+        can_add_source = all(src_counts[sid] < 3 for sid in c.get("source_ids", []))
+        if cat_counts[c["category"]] < 3 and can_add_source and len(chosen) < 10:
             chosen.append(c)
-            counts[c["category"]] += 1
+            cat_counts[c["category"]] += 1
+            for sid in c.get("source_ids", []):
+                src_counts[sid] += 1
         else:
             rest.append(c)
     for c in rest:
         if len(chosen) >= 10:
             break
-        c["selection_reason"] = "후보 부족으로 분야 제한 완화"
+        c["selection_reason"] = "후보 부족으로 다양성 제한 완화"
         chosen.append(c)
     by_category = {}
     for c in candidates:
@@ -265,8 +278,28 @@ def rank(db, period, at):
         )
     )
 
-    by_category["보수"] = cons_candidates[:10]
-    by_category["진보"] = prog_candidates[:10]
+    def pick_diverse(candidates_list, max_per_source=3, limit=10):
+        src_cnt = Counter()
+        selected = []
+        overflow = []
+        for c in candidates_list:
+            c_sources = c.get("sources", [])
+            if any(src_cnt[s] >= max_per_source for s in c_sources):
+                overflow.append(c)
+            else:
+                selected.append(c)
+                for s in c_sources:
+                    src_cnt[s] += 1
+                if len(selected) >= limit:
+                    break
+        for c in overflow:
+            if len(selected) >= limit:
+                break
+            selected.append(c)
+        return selected
+
+    by_category["보수"] = pick_diverse(cons_candidates, max_per_source=3, limit=10)
+    by_category["진보"] = pick_diverse(prog_candidates, max_per_source=4, limit=10)
 
     for cat in ("정치", "경제", "사회", "국제", "연예", "스포츠", "산업/기술", "문화"):
         by_category[f"보수_{cat}"] = [c for c in cons_candidates if c.get("category") == cat][:10]

@@ -41,7 +41,7 @@ live smoke는 별도 외부 연결 시험이고 fixture/단위 테스트와 구�
 
 2026-10-25 KST, 활성 10개 소스 모두 worker에서 RSS 파싱·저장 성공. 최초 후보 중 중앙일보·한국일보(404), KBS(빈 응답)는 서울신문·세계일보·SBS로 교체했다. 독립 smoke에서 매일경제·한국경제는 간헐 403이 있었으므로 장기 안정성을 보장하지 않는다. 동아일보 2026-10-24자 공개 지면 목차 66건 확인. 원문 본문·지면 이미지/PDF를 저장하지 않는다.
 
-27개 단위/fixture 테스트, 실제 HTTP 인증/권한/사용자 격리, PostgreSQL worker 중복 잠금, 빈 DB 기동, 백업의 별도 DB 복구, Chromium 360/768/1440px 화면 검증을 통과했다. Caddy를 통한 도메인 HTTPS(https://newschops.ggbebe8.duckdns.org) 접근 및 브라우저 검증을 완료했다. 실제 Android/iOS 기기 설치는 미검증이다.
+28개 단위/fixture 테스트, 실제 HTTP 인증/권한/사용자 격리, PostgreSQL worker 중복 잠금, 빈 DB 기동, 백업의 별도 DB 복구, Chromium 360/768/1440px 화면 검증을 통과했다. Caddy를 통한 도메인 HTTPS(https://newschops.ggbebe8.duckdns.org) 접근 및 브라우저 검증을 완료했다. 실제 Android/iOS 기기 설치는 미검증이다.
 
 실측: 기사 593건/이슈 578개에서 현재 순위 재계산 1회 128.73ms, AI 호출 0. 단발 idle 메모리 app 66.49MiB/worker 57.75MiB/DB 70.65MiB. 운영 한계/측정 조건은 TASKS 참조. 전체 시간별 작업의 peak 메모리와 총시간은 별도 측정하지 않았다.
 
