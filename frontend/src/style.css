@@ -116,6 +116,22 @@ nav .active {
   background: #e6f0e9;
   color: var(--green);
 }
+nav button[data-tab="conservative"].active {
+  background: #fde8e8;
+  color: #c62828;
+}
+nav button[data-tab="progressive"].active {
+  background: #e8f0fe;
+  color: #1565c0;
+}
+[data-theme="dark"] nav button[data-tab="conservative"].active {
+  background: #3e1b1b;
+  color: #ff8a80;
+}
+[data-theme="dark"] nav button[data-tab="progressive"].active {
+  background: #142845;
+  color: #82b1ff;
+}
 .side-note {
   border-top: 1px solid var(--line);
   margin-top: 72px;

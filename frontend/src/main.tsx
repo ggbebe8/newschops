@@ -61,9 +61,16 @@ function App() {
     const h = location.hash.replace(/^#/, "");
     if (h.startsWith("detail-")) return null;
     if (
-      ["news", "paper", "interest", "saved", "settings", "users", "admin"].includes(
-        h,
-      )
+      [
+        "news",
+        "conservative",
+        "progressive",
+        "paper",
+        "saved",
+        "settings",
+        "users",
+        "admin",
+      ].includes(h)
     ) {
       return h;
     }
@@ -147,12 +154,14 @@ function App() {
     setLoading(true);
     setError("");
     setDetail(null);
+    const stance =
+      tab === "conservative" ? "보수" : tab === "progressive" ? "진보" : "";
     Promise.all([
       api("/sources").then(setSources),
       tab === "admin"
         ? api("/admin/status").then(setStatus)
         : api(
-            `/${["interest", "saved"].includes(tab) || source || q ? "feed" : "rankings"}?period=${period}&category=${encodeURIComponent(category)}&source=${encodeURIComponent(source)}&q=${encodeURIComponent(q)}&view=${tab}`,
+            `/${tab === "saved" || source || q ? "feed" : "rankings"}?period=${period}&category=${encodeURIComponent(category)}&stance=${encodeURIComponent(stance)}&source=${encodeURIComponent(source)}&q=${encodeURIComponent(q)}&view=${tab}`,
           ).then(setData),
     ])
       .catch((e) => setError(e.message))
@@ -256,9 +265,10 @@ function App() {
           <div className="eyebrow">MY NEWSROOM</div>
           <nav>
             {[
-              ["news", "◉", "주요 뉴스"],
-              ["interest", "✧", "관심 뉴스"],
-              ["saved", "▱", "저장한 뉴스"],
+              ["news", "◉", "종합뉴스"],
+              ["conservative", "◆", "보수뉴스"],
+              ["progressive", "◇", "진보뉴스"],
+              ["saved", "★", "저장한 뉴스"],
               ["paper", "▤", "언론사 · 지면"],
               ["settings", "⚙", "개인 설정"],
               ...(user.admin
@@ -270,8 +280,12 @@ function App() {
             ].map(([id, icon, label]) => (
               <button
                 className={tab === id ? "active" : ""}
+                data-tab={id}
                 key={id}
-                onClick={() => navigateTab(id)}
+                onClick={() => {
+                  setCategory("");
+                  navigateTab(id);
+                }}
               >
                 <span>{icon}</span>
                 {label}
@@ -461,14 +475,73 @@ function App() {
                 </article>
               ))}
             </>
+          ) : tab === "saved" ? (
+            <>
+              <div className="eyebrow">SAVED ARTICLES</div>
+              <h1>저장한 뉴스</h1>
+              {loading ? (
+                <div className="empty">저장한 뉴스를 불러오고 있습니다…</div>
+              ) : !data.entries.length ? (
+                <div className="empty">
+                  <span>★</span>
+                  <h2>저장된 뉴스가 없습니다</h2>
+                  <p>뉴스 카드에서 [☆ 저장]을 누르면 이곳에 보관됩니다.</p>
+                </div>
+              ) : (
+                data.entries.map((r: any, i: number) => (
+                  <article className="news-card" key={r.id}>
+                    <div className="rank">{String(i + 1).padStart(2, "0")}</div>
+                    <div className="news-body">
+                      <div className="meta">
+                        <span>{r.category || "종합"}</span>
+                        <span>
+                          {fmt(r.occurred)} / {r.sources ? r.sources.join(" · ") : r.source}
+                        </span>
+                        {r.sources && r.sources.length > 1 && (
+                          <button
+                            className="compare-link"
+                            onClick={() => openDetail(r.id)}
+                          >
+                            매체별 보도 ({r.sources.length}개)
+                          </button>
+                        )}
+                      </div>
+                      {r.url ? (
+                        <a
+                          href={r.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="headline"
+                        >
+                          {r.title} <span className="link-ext">↗</span>
+                        </a>
+                      ) : (
+                        <button
+                          className="headline"
+                          onClick={() => openDetail(r.id)}
+                        >
+                          {r.title}
+                        </button>
+                      )}
+                      <div className="actions">
+                        <button
+                          aria-pressed={!!r.state?.saved}
+                          onClick={() => state(r, "saved")}
+                        >
+                          {r.state?.saved ? "★ 저장됨" : "☆ 저장"}
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                ))
+              )}
+            </>
           ) : (
             <>
               <div className="category-row">
                 <div className="category-bar">
                   {[
-                    ["", "종합뉴스"],
-                    ["보수", "보수뉴스"],
-                    ["진보", "진보뉴스"],
+                    ["", "전체"],
                     ["정치", "정치"],
                     ["경제", "경제"],
                     ["사회", "사회"],
@@ -544,12 +617,12 @@ function App() {
               </div>
               <div className="section-label">
                 <h2>
-                  {source || q || ["interest", "saved"].includes(tab)
-                    ? "뉴스 탐색"
-                    : `${category ? (category === "보수" ? "보수 뉴스 " : category === "진보" ? "진보 뉴스 " : `${category} `) : ""}${periods.find((p) => p[0] === period)?.[1]}`}
+                  {source || q
+                    ? "뉴스 검색 결과"
+                    : `${tab === "conservative" ? "보수 언론 " : tab === "progressive" ? "진보 언론 " : "종합 "}${category ? `${category} ` : ""}${periods.find((p) => p[0] === period)?.[1] || ""}`}
                 </h2>
                 <small>
-                  {source || q || ["interest", "saved"].includes(tab)
+                  {source || q
                     ? "최근 수집 목록 · 최대 100개"
                     : "최대 10개 이슈 · 매시간 갱신"}
                 </small>
@@ -560,11 +633,7 @@ function App() {
                 <div className="empty">
                   <span>▤</span>
                   <h2>아직 표시할 이슈가 없습니다</h2>
-                  <p>
-                    {tab === "interest"
-                      ? "개인 설정에서 관심 키워드와 선호 매체를 등록하세요."
-                      : "수집 작업을 기다리거나 기간과 필터를 변경해 보세요."}
-                  </p>
+                  <p>수집 작업을 기다리거나 기간과 필터를 변경해 보세요.</p>
                   <button onClick={() => setRefresh((x) => x + 1)}>
                     다시 확인
                   </button>

@@ -268,6 +268,10 @@ def rank(db, period, at):
     by_category["보수"] = cons_candidates[:10]
     by_category["진보"] = prog_candidates[:10]
 
+    for cat in ("정치", "경제", "사회", "국제", "연예", "스포츠", "산업/기술", "문화"):
+        by_category[f"보수_{cat}"] = [c for c in cons_candidates if c.get("category") == cat][:10]
+        by_category[f"진보_{cat}"] = [c for c in prog_candidates if c.get("category") == cat][:10]
+
     coverage = {
         s.id: s.state for s in all_sources if not (s.capabilities or {}).get("archived")
     }

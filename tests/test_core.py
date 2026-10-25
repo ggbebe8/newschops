@@ -610,3 +610,6 @@ def test_conservative_and_progressive_top10(db):
         assert not any(e["id"] == "prog_issue" for e in by_cat["보수"])
         # 진보 순위에는 보수 기사 미포함
         assert not any(e["id"] == "cons_issue" for e in by_cat["진보"])
+        # 보수_정치 등 하위 분야별 키 생성 확인
+        assert "보수_정치" in by_cat
+        assert "진보_정치" in by_cat

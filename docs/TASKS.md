@@ -19,7 +19,7 @@
 - 단위/fixture27개 통과: `docker run --rm -v "$PWD:/work" -w /work newschops-test python -m pytest -q`. (기존 22개에서 외국어 필터, 주간 가점, 일간 coalesce, 보수/진보 TOP 10 단위 테스트 추가됨).
 - 보수(조선·동아·매경·한경·세계) 및 진보(한겨레·경향·서울) 언론별 TOP 10 탭 추가 및 실시간/스냅샷 집계 지원.
 - 기간 탭 정리: '오늘' 탭 통합 제거 및 '현재 TOP 10' 일원화, '일간 확정' -> '어제 마감', '주간 확정' -> '지난주 마감' 명칭 직관화 완료.
-- UI 위계 개편: 최상단 대분류(종합뉴스, 보수뉴스, 진보뉴스, 분야별) 배치 및 하단 기간 탭 배치, 메뉴 간 상하 여백 최적화.
+- UI 위계 개편: 최상단 GNB 메뉴에 종합뉴스·보수뉴스·진보뉴스 승격 배치, 관심뉴스 제거, 하위 분야별 카테고리(정치·경제 등) 연동, 저장한 뉴스 단독 뷰 분리 완료.
 - 소스10곳 fixture 중 매경/한경은 합성 fixture, 나머지는 live 최소 메타데이터다. fixture 성공과 실제 외부 연결 성공을 구분한다.
 - `npm --prefix frontend run build`: TypeScript/Vite 빌드 성공. Vite7.3.7로 취약 버전을 수정했고 `npm audit` 알려진 취약점0.
 - `scripts/integration_smoke.py`를 app 컨테이너 안에서 실행: 실제 HTTP 로그인·계정 생성·일반 사용자403·사용자 설정 격리·로그아웃·PostgreSQL advisory 중복 잠금 통과. 임시 사용자는 정리한다.

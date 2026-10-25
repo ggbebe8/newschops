@@ -183,6 +183,7 @@ def password(data: Credentials, user=Depends(auth)):
 def rankings(
     period: str = "current",
     category: str = "",
+    stance: str = "",
     source: str = "",
     q: str = "",
     view: str = "",
@@ -211,13 +212,24 @@ def rankings(
         }
         entries = []
         target_entries = data.get("entries", [])
-        if category:
-            if "by_category" in data and category in data["by_category"]:
+        target_key = f"{stance}_{category}" if (stance and category) else (stance or category)
+        if target_key:
+            if "by_category" in data and target_key in data["by_category"]:
+                target_entries = data["by_category"][target_key]
+            elif "by_category" in data and stance and stance in data["by_category"]:
+                target_entries = [e for e in data["by_category"][stance] if not category or e.get("category") == category]
+            elif "by_category" in data and category and category in data["by_category"]:
                 target_entries = data["by_category"][category]
             else:
                 from .ranking import rank
                 computed = rank(db, period, now())
-                target_entries = computed.get("by_category", {}).get(category, [])
+                b_cat = computed.get("by_category", {})
+                if target_key in b_cat:
+                    target_entries = b_cat[target_key]
+                elif stance and stance in b_cat:
+                    target_entries = [e for e in b_cat[stance] if not category or e.get("category") == category]
+                elif category and category in b_cat:
+                    target_entries = b_cat[category]
 
         missing_url_ids = [
             original["id"] for original in target_entries if not original.get("url")
@@ -233,10 +245,8 @@ def rankings(
                 "url": original.get("url") or url_map.get(original["id"], ""),
                 "state": states.get(original["id"], {}),
             }
-            is_stance = category in ("보수", "진보")
             if (
                 r["state"].get("hidden")
-                or (category and not is_stance and r["category"] != category)
                 or (source and source not in r["sources"])
                 or (q and q not in r["title"])
             ):
@@ -264,6 +274,7 @@ def rankings(
 def feed(
     view: str = "",
     category: str = "",
+    stance: str = "",
     source: str = "",
     q: str = "",
     user=Depends(auth),
@@ -298,6 +309,14 @@ def feed(
                 continue
             articles = list(db.scalars(select(Article).where(Article.issue_id == i.id)))
             publishers = sorted({names[a.source_id] for a in articles})
+            if stance == "보수":
+                cons_sources = {"chosun", "donga", "mk", "hankyung", "segye"}
+                if not any(a.source_id in cons_sources for a in articles):
+                    continue
+            elif stance == "진보":
+                prog_sources = {"hani", "khan", "seoul"}
+                if not any(a.source_id in prog_sources for a in articles):
+                    continue
             if source and source not in publishers:
                 continue
             matches = [k for k in pref.get("keywords", []) if k and k in i.title]
