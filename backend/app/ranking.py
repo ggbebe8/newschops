@@ -60,6 +60,16 @@ def score(k, h, half, prominence=None, impact=None):
     }
 
 
+# 대표 기사 및 언론사 우선순위:
+# 연합뉴스(yna) 속보/단신이나 단순 전재(sbs)보다 심층 취재 종합일간지/경제지 본문을 우선 노출
+NEWSPAPER_PRIORITY = [
+    "chosun", "donga", "hani", "khan", "joongang",
+    "mk", "hankyung", "segye", "seoul", "hankook",
+    "kbs", "sbs", "yna",
+]
+SOURCE_PRIORITY_MAP = {sid: idx for idx, sid in enumerate(NEWSPAPER_PRIORITY)}
+
+
 def rank(db, period, at):
     from sqlalchemy import select, func
     from .db import Issue, Article, Source, Placement
@@ -109,17 +119,29 @@ def rank(db, period, at):
         known_count = len({a.origin for a in articles if a.origin.startswith("known:")})
         distinct_source_ids = {a.source_id for a in articles}
         distinct_sources = len(distinct_source_ids)
-        # 통신사(연합뉴스)-방송사(SBS) 단순 전재 감지:
-        # 두 매체만 동일 제목으로 보도된 경우 통신사 전재로 취급하여 독립 취재 가점(k) 배제
+
+        # 통신사 왜곡 방지 (Wire Service Discount & Reprint Detection)
+        # 국가기간통신사(연합뉴스 yna)는 일일 기사량이 일반 신문사의 5~10배에 달하므로,
+        # 단순 송고 단신이나 전재 보도가 순위를 왜곡하지 않도록 독립 언론 기준 교차 검증 적용
+        wire_sources = {"yna"}
+        non_wire_sources = distinct_source_ids - wire_sources
         is_wire_reprint = distinct_source_ids == {"yna", "sbs"}
+
         if known_count > 0:
             k = known_count
         elif is_wire_reprint:
             k = 0
+        elif len(non_wire_sources) >= 2:
+            # 2개 이상의 독립 언론사가 취재 경쟁을 벌인 실제 주요 사건 -> 전체 매체 수 가점 온전 반영
+            k = distinct_sources
+        elif len(non_wire_sources) == 1 and "yna" in distinct_source_ids:
+            # 연합뉴스 대량 단신에 1개 매체만 보도한 경우 -> 확산도 1.0으로 제한 (통신사 디스카운트)
+            k = 1.0
         elif distinct_sources >= 2:
             k = distinct_sources
         else:
             k = 0
+
         placements = {}
         placement_evidence = []
         for a in articles:
@@ -146,18 +168,29 @@ def rank(db, period, at):
             half,
             prominence=prominence,
         )
-        confidence = (
-            "통신사 전재 보도"
-            if is_wire_reprint
-            else f"독립 보도 {k}개 매체 확인 · 확산도 반영"
-            if k >= 2
-            else "제한적 · 제목 기반 / 독립 취재 미확인"
-        )
+        if is_wire_reprint:
+            confidence = "통신사 전재 보도 · 가점 배제"
+        elif len(non_wire_sources) >= 2:
+            confidence = f"독립 보도 {distinct_sources}개 매체 확인 · 확산도 반영"
+        elif len(non_wire_sources) == 1 and "yna" in distinct_source_ids:
+            confidence = "통신사 송고 + 1개 매체 보도 · 확산도 제한 반영"
+        elif k >= 2:
+            confidence = f"독립 보도 {k}개 매체 확인 · 확산도 반영"
+        else:
+            confidence = "제한적 · 제목 기반 / 독립 취재 미확인"
+
+        # 대표 기사 선정: 통신사(yna)나 단순 전재(sbs)보다는 심층 일간지 기사를 우선 노출
+        rep_article = min(articles, key=lambda a: SOURCE_PRIORITY_MAP.get(a.source_id, 50)) if articles else None
+        rep_source_id = rep_article.source_id if rep_article else ""
+        rep_source_name = sources.get(rep_source_id, rep_source_id)
+
         candidates.append(
             {
                 "id": issue.id,
                 "title": issue.title,
-                "url": articles[0].url if articles else "",
+                "url": rep_article.url if rep_article else "",
+                "primary_source": rep_source_name,
+                "primary_source_id": rep_source_id,
                 "category": issue.category,
                 "occurred": utc(issue.occurred).isoformat(),
                 "sources": sorted({sources.get(a.source_id, a.source_id) for a in articles}),
@@ -183,12 +216,14 @@ def rank(db, period, at):
     chosen = []
     rest = []
     for c in candidates:
-        can_add_source = all(src_counts[sid] < 3 for sid in c.get("source_ids", []))
+        psid = c.get("primary_source_id")
+        # 단일 매체 독점 방지: 대표 매체(primary_source) 기준 최대 3건 캡
+        can_add_source = src_counts[psid] < 3 if psid else True
         if cat_counts[c["category"]] < 3 and can_add_source and len(chosen) < 10:
             chosen.append(c)
             cat_counts[c["category"]] += 1
-            for sid in c.get("source_ids", []):
-                src_counts[sid] += 1
+            if psid:
+                src_counts[psid] += 1
         else:
             rest.append(c)
     for c in rest:
@@ -223,11 +258,15 @@ def rank(db, period, at):
             k_val = k_c if k_c >= 2 else 0
             h = (end - utc(issue.occurred)).total_seconds() / 3600
             bd = score(k_val, h, half)
+            rep_c = min(c_articles, key=lambda a: SOURCE_PRIORITY_MAP.get(a.source_id, 50))
+            rep_c_name = sources.get(rep_c.source_id, rep_c.source_id)
             cons_candidates.append(
                 {
                     "id": issue.id,
                     "title": issue.title,
-                    "url": c_articles[0].url,
+                    "url": rep_c.url,
+                    "primary_source": rep_c_name,
+                    "primary_source_id": rep_c.source_id,
                     "category": issue.category,
                     "occurred": utc(issue.occurred).isoformat(),
                     "sources": sorted({sources.get(a.source_id, a.source_id) for a in c_articles}),
@@ -245,11 +284,15 @@ def rank(db, period, at):
             k_val = k_p if k_p >= 2 else 0
             h = (end - utc(issue.occurred)).total_seconds() / 3600
             bd = score(k_val, h, half)
+            rep_p = min(p_articles, key=lambda a: SOURCE_PRIORITY_MAP.get(a.source_id, 50))
+            rep_p_name = sources.get(rep_p.source_id, rep_p.source_id)
             prog_candidates.append(
                 {
                     "id": issue.id,
                     "title": issue.title,
-                    "url": p_articles[0].url,
+                    "url": rep_p.url,
+                    "primary_source": rep_p_name,
+                    "primary_source_id": rep_p.source_id,
                     "category": issue.category,
                     "occurred": utc(issue.occurred).isoformat(),
                     "sources": sorted({sources.get(a.source_id, a.source_id) for a in p_articles}),
@@ -283,13 +326,13 @@ def rank(db, period, at):
         selected = []
         overflow = []
         for c in candidates_list:
-            c_sources = c.get("sources", [])
-            if any(src_cnt[s] >= max_per_source for s in c_sources):
+            psid = c.get("primary_source_id")
+            if psid and src_cnt[psid] >= max_per_source:
                 overflow.append(c)
             else:
                 selected.append(c)
-                for s in c_sources:
-                    src_cnt[s] += 1
+                if psid:
+                    src_cnt[psid] += 1
                 if len(selected) >= limit:
                     break
         for c in overflow:

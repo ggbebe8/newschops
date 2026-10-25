@@ -495,7 +495,12 @@ function App() {
                       <div className="meta">
                         <span>{r.category || "종합"}</span>
                         <span>
-                          {fmt(r.occurred)} / {r.sources ? r.sources.join(" · ") : r.source}
+                          {fmt(r.occurred)} /{" "}
+                          {r.sources && r.sources.length > 2
+                            ? `${r.primary_source || r.sources[0]} 외 ${r.sources.length - 1}곳`
+                            : r.sources
+                              ? r.sources.join(" · ")
+                              : r.source}
                         </span>
                         {r.sources && r.sources.length > 1 && (
                           <button
@@ -646,7 +651,10 @@ function App() {
                       <div className="meta">
                         <span>{r.category}</span>
                         <span>
-                          {fmt(r.occurred)} / {r.sources.join(" · ")}
+                          {fmt(r.occurred)} /{" "}
+                          {r.sources && r.sources.length > 2
+                            ? `${r.primary_source || r.sources[0]} 외 ${r.sources.length - 1}곳`
+                            : r.sources.join(" · ")}
                         </span>
                         {r.sources.length > 1 && (
                           <button

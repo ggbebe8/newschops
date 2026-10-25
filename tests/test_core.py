@@ -623,6 +623,7 @@ def test_wire_reprint_and_source_diversity_cap(db):
         s.add(Source(id="yna", name="연합뉴스", domain="yna.co.kr", endpoint="https://yna.co.kr"))
         s.add(Source(id="sbs", name="SBS", domain="sbs.co.kr", endpoint="https://sbs.co.kr"))
         s.add(Source(id="donga", name="동아일보", domain="donga.com", endpoint="https://donga.com"))
+        s.add(Source(id="chosun", name="조선일보", domain="chosun.com", endpoint="https://chosun.com"))
 
         # 1. 연합뉴스-SBS 단순 전재 기사 (독립 취재 k 배제되어야 함)
         s.add(Issue(id="wire_issue", title="단순 전재 기사", occurred=at - timedelta(hours=1), discovered=at - timedelta(hours=1)))
@@ -630,22 +631,39 @@ def test_wire_reprint_and_source_diversity_cap(db):
         s.add(Article(id="art_yna", issue_id="wire_issue", source_id="yna", title="단순 전재 기사", url="https://yna.co.kr/w1", origin="unknown:yna", published=at - timedelta(hours=1), discovered=at - timedelta(hours=1), collected=at - timedelta(hours=1)))
         s.add(Article(id="art_sbs", issue_id="wire_issue", source_id="sbs", title="단순 전재 기사", url="https://sbs.co.kr/w1", origin="unknown:sbs", published=at - timedelta(hours=1), discovered=at - timedelta(hours=1), collected=at - timedelta(hours=1)))
 
-        # 2. 동아일보 포함 3개 매체 복수 보도 기사
-        s.add(Issue(id="multi_issue", title="진짜 복수 취재 기사", occurred=at - timedelta(hours=2), discovered=at - timedelta(hours=2)))
+        # 2. 통신사 단신 + 1개 매체 보도 (통신사 디스카운트 k=1.0, 대표 URL은 동아일보)
+        s.add(Issue(id="wire_single_issue", title="통신사 1곳 보도 기사", occurred=at - timedelta(hours=2), discovered=at - timedelta(hours=2)))
         s.flush()
-        s.add(Article(id="art_m1", issue_id="multi_issue", source_id="yna", title="진짜 복수 취재 기사", url="https://yna.co.kr/m1", origin="unknown:yna", published=at - timedelta(hours=2), discovered=at - timedelta(hours=2), collected=at - timedelta(hours=2)))
-        s.add(Article(id="art_m2", issue_id="multi_issue", source_id="donga", title="진짜 복수 취재 기사", url="https://donga.com/m1", origin="unknown:donga", published=at - timedelta(hours=2), discovered=at - timedelta(hours=2), collected=at - timedelta(hours=2)))
+        s.add(Article(id="art_ws1", issue_id="wire_single_issue", source_id="yna", title="통신사 1곳 보도 기사", url="https://yna.co.kr/ws1", origin="unknown:yna", published=at - timedelta(hours=2), discovered=at - timedelta(hours=2), collected=at - timedelta(hours=2)))
+        s.add(Article(id="art_ws2", issue_id="wire_single_issue", source_id="donga", title="통신사 1곳 보도 기사", url="https://donga.com/ws1", origin="unknown:donga", published=at - timedelta(hours=2), discovered=at - timedelta(hours=2), collected=at - timedelta(hours=2)))
+
+        # 3. 독립 신문사 2곳 이상 포함 복수 보도 기사 (k=3, 대표 URL은 일간지)
+        s.add(Issue(id="multi_issue", title="진짜 복수 취재 기사", occurred=at - timedelta(hours=3), discovered=at - timedelta(hours=3)))
+        s.flush()
+        s.add(Article(id="art_m1", issue_id="multi_issue", source_id="yna", title="진짜 복수 취재 기사", url="https://yna.co.kr/m1", origin="unknown:yna", published=at - timedelta(hours=3), discovered=at - timedelta(hours=3), collected=at - timedelta(hours=3)))
+        s.add(Article(id="art_m2", issue_id="multi_issue", source_id="donga", title="진짜 복수 취재 기사", url="https://donga.com/m1", origin="unknown:donga", published=at - timedelta(hours=3), discovered=at - timedelta(hours=3), collected=at - timedelta(hours=3)))
+        s.add(Article(id="art_m3", issue_id="multi_issue", source_id="chosun", title="진짜 복수 취재 기사", url="https://chosun.com/m1", origin="unknown:chosun", published=at - timedelta(hours=3), discovered=at - timedelta(hours=3), collected=at - timedelta(hours=3)))
 
     with db() as s:
         r = rank(s, "current", at)
         wire_item = next(e for e in r["entries"] if e["id"] == "wire_issue")
+        wire_single_item = next(e for e in r["entries"] if e["id"] == "wire_single_issue")
         multi_item = next(e for e in r["entries"] if e["id"] == "multi_issue")
 
         # 단순 전재는 origins == 0
         assert wire_item["independent_origins"] == 0
-        assert wire_item["confidence"] == "통신사 전재 보도"
-        # 3개 매체 중 동아일보 포함 복수 보도는 origins >= 2
-        assert multi_item["independent_origins"] == 2
+        assert "전재 보도" in wire_item["confidence"]
+
+        # 통신사 + 1개 매체는 k == 1.0 (디스카운트), 대표 URL은 동아일보
+        assert wire_single_item["independent_origins"] == 1.0
+        assert "제한 반영" in wire_single_item["confidence"]
+        assert wire_single_item["url"] == "https://donga.com/ws1"
+        assert wire_single_item["primary_source"] == "동아일보"
+
+        # 복수 독립 언론사 취재는 전체 매체 수 온전 반영 (k == 3), 대표 URL은 일간지
+        assert multi_item["independent_origins"] == 3
+        assert multi_item["url"] in ("https://chosun.com/m1", "https://donga.com/m1")
+        assert multi_item["primary_source"] in ("조선일보", "동아일보")
 
 
 def test_title_similarity_and_clustering(db):

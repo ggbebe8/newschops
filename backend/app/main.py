@@ -329,11 +329,16 @@ def feed(
                     k and k in i.title for k in pref.get("excluded", [])
                 ) or i.category in pref.get("excluded_categories", []):
                     continue
+            from .ranking import SOURCE_PRIORITY_MAP
+
+            rep_art = min(articles, key=lambda a: SOURCE_PRIORITY_MAP.get(a.source_id, 50)) if articles else None
+            rep_name = names.get(rep_art.source_id, rep_art.source_id) if rep_art else ""
             entries.append(
                 {
                     "id": i.id,
                     "title": i.title,
-                    "url": articles[0].url if articles else "",
+                    "url": rep_art.url if rep_art else "",
+                    "primary_source": rep_name,
                     "category": i.category,
                     "occurred": i.occurred,
                     "time_estimated": i.time_estimated,
