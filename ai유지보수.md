@@ -55,8 +55,8 @@ git log -5 --oneline
 | DB migration | backend/migrations, 현재 003. 001 스키마는 schema_v1.py에 동결 |
 | Compose 서비스·포트 | db, migrate, app, worker; 선택 caddy(tls). 앱 0.0.0.0:38475, DB포트 비공개 |
 | 실행 | .env 준비 후 docker compose up -d --build |
-| 검증 | pytest29개, TS/Vite빌드, 실제HTTP/PG잠금, 빈DB기동, 백업복구, Chromium360/768/1440, Caddy 도메인 HTTPS 검증 통과 |
-| 최근 작업 | 통신사(연합뉴스) 대량 송고 왜곡 방지(통신사 디스카운트, 종합일간지 대표기사 우선 노출, 다양성 캡) 및 클러스터링 고도화 |
+| 검증 | pytest30개, TS/Vite빌드, 실제HTTP/PG잠금, 빈DB기동, 백업복구, Chromium360/768/1440, Caddy 도메인 HTTPS 검증 통과 |
+| 최근 작업 | 나중에 보기(장바구니형 리딩 리스트) 기능 구현, 기사별 [+ 나중에 보기] 버튼, 읽은 기사 음영 및 후순위 정렬, 원클릭 비우기 지원 |
 | 활성10개 소스 | 동아·조선·서울·한겨레·경향·세계·연합·SBS·매경·한경. worker10곳정상, 별도 smoke경제지2곳403 기록 |
 | 동아일보 지면 | 공개 지면 목차2026-10-24자66건 실제 저장. 다른9곳미지원. 이미지/PDF접근없음 |
 | AI | 예약환경변수와테이블만존재. 외부호출/예산/캐시 미구현, 키입력만으로활성화안됨 |

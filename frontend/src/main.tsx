@@ -34,6 +34,7 @@ function App() {
     [dark, setDark] = useState(localStorage.getItem("theme") === "dark"),
     [format, setFormat] = useState("short"),
     [refresh, setRefresh] = useState(0),
+    [savedCount, setSavedCount] = useState(0),
     [update, setUpdate] = useState(false);
   async function api(path: string, method = "GET", body?: any) {
     const r = await fetch("/api" + path, {
@@ -130,7 +131,12 @@ function App() {
   useEffect(() => {
     fetch("/api/me")
       .then((r) => (r.ok ? r.json() : null))
-      .then(setUser)
+      .then((u) => {
+        setUser(u);
+        if (u && typeof u.saved_count === "number") {
+          setSavedCount(u.saved_count);
+        }
+      })
       .finally(() => setLoading(false));
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("/sw.js").then((r) => {
@@ -162,7 +168,12 @@ function App() {
         ? api("/admin/status").then(setStatus)
         : api(
             `/${tab === "saved" || source || q ? "feed" : "rankings"}?period=${period}&category=${encodeURIComponent(category)}&stance=${encodeURIComponent(stance)}&source=${encodeURIComponent(source)}&q=${encodeURIComponent(q)}&view=${tab}`,
-          ).then(setData),
+          ).then((res) => {
+            setData(res);
+            if (tab === "saved" && res.entries) {
+              setSavedCount(res.entries.length);
+            }
+          }),
     ])
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
@@ -181,6 +192,56 @@ function App() {
       setError(e.message);
     }
   }
+  async function toggleSave(entry: any) {
+    const isSaved = !!entry.state?.saved;
+    const nextSaved = !isSaved;
+    entry.state = { ...(entry.state || {}), saved: nextSaved };
+    setSavedCount((c) => (nextSaved ? c + 1 : Math.max(0, c - 1)));
+    try {
+      await api(`/issues/${entry.id}/state`, "PUT", entry.state);
+      if (tab === "saved") {
+        setRefresh((x) => x + 1);
+      }
+    } catch (e: any) {
+      setError(e.message);
+      entry.state.saved = isSaved;
+      setSavedCount((c) => (isSaved ? c + 1 : Math.max(0, c - 1)));
+    }
+  }
+
+  async function markRead(entry: any) {
+    if (entry.state?.read) return;
+    entry.state = { ...(entry.state || {}), read: true };
+    try {
+      await api(`/issues/${entry.id}/state`, "PUT", entry.state);
+      if (tab === "saved") {
+        setRefresh((x) => x + 1);
+      }
+    } catch (e: any) {
+      // non-blocking
+    }
+  }
+
+  async function toggleRead(entry: any) {
+    const nextRead = !entry.state?.read;
+    entry.state = { ...(entry.state || {}), read: nextRead };
+    try {
+      await api(`/issues/${entry.id}/state`, "PUT", entry.state);
+      setRefresh((x) => x + 1);
+    } catch (e: any) {
+      setError(e.message);
+    }
+  }
+
+  async function clearReadSaved() {
+    try {
+      await api("/saved/clear-read", "POST");
+      setRefresh((x) => x + 1);
+    } catch (e: any) {
+      setError(e.message);
+    }
+  }
+
   async function state(entry: any, key: string) {
     try {
       await api(`/issues/${entry.id}/state`, "PUT", {
@@ -268,7 +329,7 @@ function App() {
               ["news", "◉", "종합뉴스"],
               ["conservative", "◆", "보수뉴스"],
               ["progressive", "◇", "진보뉴스"],
-              ["saved", "★", "저장한 뉴스"],
+              ["saved", "🧺", "나중에 보기"],
               ["paper", "▤", "언론사 · 지면"],
               ["settings", "⚙", "개인 설정"],
               ...(user.admin
@@ -289,6 +350,9 @@ function App() {
               >
                 <span>{icon}</span>
                 {label}
+                {id === "saved" && savedCount > 0 && (
+                  <span className="nav-badge">{savedCount}</span>
+                )}
               </button>
             ))}
           </nav>
@@ -477,68 +541,138 @@ function App() {
             </>
           ) : tab === "saved" ? (
             <>
-              <div className="eyebrow">SAVED ARTICLES</div>
-              <h1>저장한 뉴스</h1>
+              <div className="eyebrow">READING CART</div>
+              <h1>나중에 보기</h1>
               {loading ? (
-                <div className="empty">저장한 뉴스를 불러오고 있습니다…</div>
+                <div className="empty">나중에 볼 기사를 불러오고 있습니다…</div>
               ) : !data.entries.length ? (
                 <div className="empty">
-                  <span>★</span>
-                  <h2>저장된 뉴스가 없습니다</h2>
-                  <p>뉴스 카드에서 [☆ 저장]을 누르면 이곳에 보관됩니다.</p>
+                  <span style={{ fontSize: "36px" }}>🧺</span>
+                  <h2>나중에 볼 기사가 비어 있습니다</h2>
+                  <p>
+                    뉴스 목록에서 [+ 나중에 보기]를 누르면 장바구니처럼 담아두고
+                    한꺼번에 모아서 읽을 수 있습니다.
+                  </p>
                 </div>
               ) : (
-                data.entries.map((r: any, i: number) => (
-                  <article className="news-card" key={r.id}>
-                    <div className="rank">{String(i + 1).padStart(2, "0")}</div>
-                    <div className="news-body">
-                      <div className="meta">
-                        <span>{r.category || "종합"}</span>
-                        <span>
-                          {fmt(r.occurred)} /{" "}
-                          {r.sources && r.sources.length > 2
-                            ? `${r.primary_source || r.sources[0]} 외 ${r.sources.length - 1}곳`
-                            : r.sources
-                              ? r.sources.join(" · ")
-                              : r.source}
-                        </span>
-                        {r.sources && r.sources.length > 1 && (
-                          <button
-                            className="compare-link"
-                            onClick={() => openDetail(r.id)}
-                          >
-                            매체별 보도 ({r.sources.length}개)
-                          </button>
-                        )}
-                      </div>
-                      {r.url ? (
-                        <a
-                          href={r.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="headline"
-                        >
-                          {r.title} <span className="link-ext">↗</span>
-                        </a>
-                      ) : (
-                        <button
-                          className="headline"
-                          onClick={() => openDetail(r.id)}
-                        >
-                          {r.title}
-                        </button>
-                      )}
-                      <div className="actions">
-                        <button
-                          aria-pressed={!!r.state?.saved}
-                          onClick={() => state(r, "saved")}
-                        >
-                          {r.state?.saved ? "★ 저장됨" : "☆ 저장"}
-                        </button>
-                      </div>
+                <>
+                  <div className="saved-header">
+                    <div className="saved-stats">
+                      <span>
+                        담긴 기사 <strong>{data.entries.length}</strong>건
+                      </span>
+                      <span className="dot">·</span>
+                      <span>
+                        읽지 않음{" "}
+                        <strong>
+                          {
+                            data.entries.filter((e: any) => !e.state?.read)
+                              .length
+                          }
+                        </strong>
+                        건
+                      </span>
+                      <span className="dot">·</span>
+                      <span>
+                        읽음 완료{" "}
+                        <strong>
+                          {
+                            data.entries.filter((e: any) => e.state?.read)
+                              .length
+                          }
+                        </strong>
+                        건
+                      </span>
                     </div>
-                  </article>
-                ))
+                    {data.entries.some((e: any) => e.state?.read) && (
+                      <button
+                        className="clear-read-btn"
+                        onClick={clearReadSaved}
+                      >
+                        읽은 기사 모두 비우기 (
+                        {
+                          data.entries.filter((e: any) => e.state?.read).length
+                        }
+                        건)
+                      </button>
+                    )}
+                  </div>
+                  {data.entries.map((r: any, i: number) => {
+                    const isRead = !!r.state?.read;
+                    return (
+                      <article
+                        className={`news-card ${isRead ? "read-done" : ""}`}
+                        key={r.id}
+                      >
+                        <div className="rank">
+                          {String(i + 1).padStart(2, "0")}
+                        </div>
+                        <div className="news-body">
+                          <div className="meta">
+                            <span>{r.category || "종합"}</span>
+                            <span>
+                              {fmt(r.occurred)} /{" "}
+                              {r.sources && r.sources.length > 2
+                                ? `${r.primary_source || r.sources[0]} 외 ${r.sources.length - 1}곳`
+                                : r.sources
+                                  ? r.sources.join(" · ")
+                                  : r.source}
+                            </span>
+                            {r.sources && r.sources.length > 1 && (
+                              <button
+                                className="compare-link"
+                                onClick={() => openDetail(r.id)}
+                              >
+                                매체별 보도 ({r.sources.length}개)
+                              </button>
+                            )}
+                            {isRead && (
+                              <span className="read-badge">✓ 이미 읽음</span>
+                            )}
+                          </div>
+                          {r.url ? (
+                            <a
+                              href={r.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="headline"
+                              onClick={() => markRead(r)}
+                            >
+                              {r.title} <span className="link-ext">↗</span>
+                            </a>
+                          ) : (
+                            <button
+                              className="headline"
+                              onClick={() => {
+                                markRead(r);
+                                openDetail(r.id);
+                              }}
+                            >
+                              {r.title}
+                            </button>
+                          )}
+                          <div className="article-actions">
+                            <button
+                              className="btn-watch-later remove"
+                              onClick={() => toggleSave(r)}
+                              title="장바구니에서 삭제"
+                            >
+                              ✕ 담기 취소
+                            </button>
+                            <button
+                              className={`btn-read-toggle ${isRead ? "is-read" : ""}`}
+                              onClick={() => toggleRead(r)}
+                            >
+                              {isRead
+                                ? "✓ 읽음 완료 (클릭시 안읽음)"
+                                : "읽음 표시"}
+                            </button>
+                          </div>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </>
               )}
             </>
           ) : (
@@ -644,8 +778,13 @@ function App() {
                   </button>
                 </div>
               ) : (
-                data.entries.map((r: any, i: number) => (
-                  <article className="news-card" key={r.id}>
+                data.entries.map((r: any, i: number) => {
+                  const isRead = !!r.state?.read;
+                  return (
+                    <article
+                      className={`news-card ${isRead ? "read-done" : ""}`}
+                      key={r.id}
+                    >
                     <div className="rank">{String(i + 1).padStart(2, "0")}</div>
                     <div className="news-body">
                       <div className="meta">
@@ -664,6 +803,7 @@ function App() {
                             매체별 보도 ({r.sources.length}개)
                           </button>
                         )}
+                        {isRead && <span className="read-badge">✓ 읽음</span>}
                         {r.match_reason && (
                           <span> · 관심 일치: {r.match_reason.join(", ")}</span>
                         )}
@@ -674,17 +814,32 @@ function App() {
                           target="_blank"
                           rel="noopener noreferrer"
                           className="headline"
+                          onClick={() => markRead(r)}
                         >
                           {r.title} <span className="link-ext">↗</span>
                         </a>
                       ) : (
                         <button
                           className="headline"
-                          onClick={() => openDetail(r.id)}
+                          onClick={() => {
+                            markRead(r);
+                            openDetail(r.id);
+                          }}
                         >
                           {r.title}
                         </button>
                       )}
+                      <div className="article-actions">
+                        <button
+                          className={`btn-watch-later ${r.state?.saved ? "active" : ""}`}
+                          onClick={() => toggleSave(r)}
+                          title="장바구니에 담아두고 나중에 모아서 읽기"
+                        >
+                          {r.state?.saved
+                            ? "✓ 나중에 보기 담김"
+                            : "+ 나중에 보기"}
+                        </button>
+                      </div>
                       {format === "detail" && (
                         <p className="muted">
                           점수 {r.score.toFixed(1)} · 독립 취재 확인{" "}
@@ -694,12 +849,6 @@ function App() {
                         </p>
                       )}
                       <div className="actions">
-                        <button
-                          aria-pressed={!!r.state?.saved}
-                          onClick={() => state(r, "saved")}
-                        >
-                          {r.state?.saved ? "★ 저장됨" : "☆ 저장"}
-                        </button>
                         <details>
                           <summary>
                             {r.evidence === 0 ? "수집 정보" : "선정 근거"}
@@ -713,8 +862,9 @@ function App() {
                       </div>
                     </div>
                   </article>
-                ))
-              )}
+                );
+              })
+            )}
               <p className="footnote">{data.notice}</p>
             </>
           )}

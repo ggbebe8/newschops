@@ -702,3 +702,55 @@ def test_title_similarity_and_clustering(db):
         art_a = s.get(Article, "art_a")
         art_b = s.get(Article, "art_b")
         assert art_a.issue_id == art_b.issue_id
+
+
+def test_watch_later_reading_cart_and_unread_priority(db):
+    from backend.app.db import Source
+    c = TestClient(main.app)
+    h = {"Origin": "http://localhost:38475"}
+
+    # 1. reader 로그인
+    r = c.post(
+        "/api/login",
+        headers=h,
+        json={"username": "reader", "password": "a-long-test-password"},
+    )
+    assert r.status_code == 200
+    csrf = r.json()["csrf"]
+    h["X-CSRF-Token"] = csrf
+
+    at = datetime(2026, 10, 25, 12, tzinfo=timezone.utc)
+    with db.begin() as s:
+        s.add(Source(id="src_x", name="매체X", domain="x.com", endpoint="https://x.com"))
+        s.add(Issue(id="iss_1", title="먼저 읽은 기사", occurred=at, discovered=at))
+        s.add(Issue(id="iss_2", title="아직 안 읽은 기사", occurred=at, discovered=at))
+        s.flush()
+        s.add(Article(id="art_1", issue_id="iss_1", source_id="src_x", title="먼저 읽은 기사", url="https://x.com/1", origin="x", published=at, discovered=at, collected=at))
+        s.add(Article(id="art_2", issue_id="iss_2", source_id="src_x", title="아직 안 읽은 기사", url="https://x.com/2", origin="x", published=at, discovered=at, collected=at))
+
+    # 2. 두 기사 모두 나중에 보기에 저장 (iss_1은 읽음, iss_2는 안 읽음)
+    c.put("/api/issues/iss_1/state", headers=h, json={"saved": True, "read": True})
+    c.put("/api/issues/iss_2/state", headers=h, json={"saved": True, "read": False})
+
+    # 3. /api/me 에서 saved_count == 2 확인
+    me_res = c.get("/api/me", headers=h).json()
+    assert me_res["saved_count"] == 2
+
+    # 4. /api/feed?view=saved 에서 정렬 확인: 안 읽은 iss_2가 1순위, 읽은 iss_1이 2순위
+    feed_res = c.get("/api/feed?view=saved", headers=h).json()
+    entries = feed_res["entries"]
+    assert len(entries) == 2
+    assert entries[0]["id"] == "iss_2"
+    assert entries[0]["state"]["read"] is False
+    assert entries[1]["id"] == "iss_1"
+    assert entries[1]["state"]["read"] is True
+
+    # 5. /api/saved/clear-read 로 읽은 기사 비우기
+    c.post("/api/saved/clear-read", headers=h)
+    feed_after = c.get("/api/feed?view=saved", headers=h).json()
+    assert len(feed_after["entries"]) == 1
+    assert feed_after["entries"][0]["id"] == "iss_2"
+
+    # saved_count도 1로 감소했는지 확인
+    me_after = c.get("/api/me", headers=h).json()
+    assert me_after["saved_count"] == 1

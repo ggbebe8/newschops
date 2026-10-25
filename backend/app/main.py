@@ -8,7 +8,7 @@ from fastapi import FastAPI, Request, HTTPException, Depends, Response
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, func, update
 from .db import *
 from .security import digest
 from .ranking import utc
@@ -151,11 +151,20 @@ def login(data: Credentials, request: Request, response: Response):
 def me(request: Request, user=Depends(auth)):
     with Session() as db:
         login = db.get(Login, digest(request.cookies["session"]))
+        saved_count = (
+            db.scalar(
+                select(func.count(State.id)).where(
+                    State.user_id == user.id, State.saved == True
+                )
+            )
+            or 0
+        )
         return {
             "username": user.username,
             "admin": user.admin,
             "csrf": login.csrf,
             "preferences": user.preferences,
+            "saved_count": saved_count,
         }
 
 
@@ -293,7 +302,7 @@ def feed(
                 select(Issue)
                 .join(State, State.issue_id == Issue.id)
                 .where(State.user_id == user.id, State.saved == True)
-                .order_by(Issue.discovered.desc())
+                .order_by(State.read.asc(), Issue.discovered.desc())
                 .limit(1000)
             )
         for i in issues:
@@ -361,9 +370,21 @@ def feed(
             )
             if len(entries) >= 100:
                 break
+        if view == "saved":
+            entries.sort(
+                key=lambda e: (
+                    1 if e.get("state", {}).get("read") else 0,
+                    -(
+                        e["occurred"].timestamp()
+                        if hasattr(e.get("occurred"), "timestamp")
+                        else 0
+                    ),
+                )
+            )
         return {
             "entries": entries,
-            "notice": "최근 1,000개 후보 중 최대 100개 표시 · 개인 관심 필터는 종합 순위에 영향을 주지 않습니다.",
+            "notice": "나중에 보기(장바구니) · 안 읽은 기사 우선 정렬" if view == "saved" else "최근 1,000개 후보 중 최대 100개 표시 · 개인 관심 필터는 종합 순위에 영향을 주지 않습니다.",
+            "as_of": now().isoformat(),
         }
 
 
@@ -492,6 +513,17 @@ def update_state(iid: str, data: IssueState, user=Depends(auth)):
             db.add(state)
         for k, v in data.model_dump().items():
             setattr(state, k, v)
+    return {"ok": True}
+
+
+@app.post("/api/saved/clear-read")
+def clear_read_saved(user=Depends(auth)):
+    with Session.begin() as db:
+        db.execute(
+            update(State)
+            .where(State.user_id == user.id, State.saved == True, State.read == True)
+            .values(saved=False)
+        )
     return {"ok": True}
 
 
