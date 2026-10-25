@@ -126,7 +126,7 @@ nav .active {
 }
 .content {
   min-width: 0;
-  padding: 42px 5%;
+  padding: 18px 5% 40px;
   max-width: 1180px;
   width: 100%;
   margin: auto;
@@ -162,17 +162,17 @@ small,
 }
 .periods {
   display: flex;
-  gap: 22px;
+  gap: 20px;
   border-bottom: 1px solid var(--line);
-  margin-top: 32px;
+  margin-top: 4px;
   overflow: auto;
 }
 .periods button {
   border: 0;
   border-radius: 0;
   white-space: nowrap;
-  font-size: 13px;
-  padding: 16px 0;
+  font-size: 13.5px;
+  padding: 8px 0;
 }
 .periods .selected {
   border-bottom: 3px solid var(--green);
@@ -205,7 +205,7 @@ input {
 .coverage {
   font-size: 11px;
   color: var(--muted);
-  padding: 20px 0;
+  padding: 10px 0 8px;
   display: flex;
   align-items: center;
   gap: 7px;
@@ -226,7 +226,7 @@ input {
 }
 .section-label {
   border-top: 1px solid var(--line);
-  padding-top: 17px;
+  padding-top: 12px;
 }
 .section-label h2 {
   font-size: 17px;
@@ -328,12 +328,12 @@ input {
   align-items: center;
   gap: 8px;
   position: relative;
-  margin-bottom: 4px;
+  margin-bottom: 0px;
 }
 .category-row .category-bar {
   flex: 1;
   min-width: 0;
-  padding: 10px 0;
+  padding: 4px 0 8px;
 }
 .search-toggle-btn {
   flex-shrink: 0;
@@ -587,7 +587,7 @@ footer details {
     display: none;
   }
   .content {
-    padding: 28px 18px;
+    padding: 12px 16px 28px;
   }
   .heading h1 {
     font-size: 26px;
@@ -616,7 +616,11 @@ footer details {
     font-size: 10px;
   }
   .periods {
-    margin-top: 20px;
+    margin-top: 4px;
+  }
+  .periods button {
+    padding: 7px 0;
+    font-size: 13px;
   }
   .card {
     padding: 18px;

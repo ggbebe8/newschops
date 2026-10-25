@@ -463,23 +463,12 @@ function App() {
             </>
           ) : (
             <>
-              <div className="periods">
-                {periods.map(([id, label]) => (
-                  <button
-                    key={id}
-                    className={period === id ? "selected" : ""}
-                    onClick={() => setPeriod(id)}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
               <div className="category-row">
                 <div className="category-bar">
                   {[
-                    ["", "전체 종합"],
-                    ["보수", "보수 언론"],
-                    ["진보", "진보 언론"],
+                    ["", "종합뉴스"],
+                    ["보수", "보수뉴스"],
+                    ["진보", "진보뉴스"],
                     ["정치", "정치"],
                     ["경제", "경제"],
                     ["사회", "사회"],
@@ -508,6 +497,17 @@ function App() {
                   <span className="search-icon">🔍</span>
                   {(q || source) && <span className="filter-badge" />}
                 </button>
+              </div>
+              <div className="periods">
+                {periods.map(([id, label]) => (
+                  <button
+                    key={id}
+                    className={period === id ? "selected" : ""}
+                    onClick={() => setPeriod(id)}
+                  >
+                    {label}
+                  </button>
+                ))}
               </div>
               <div className={`filters ${showFilter || q || source ? "open" : ""}`}>
                 <select
@@ -544,18 +544,12 @@ function App() {
               </div>
               <div className="section-label">
                 <h2>
-                  {source ||
-                  category ||
-                  q ||
-                  ["interest", "saved"].includes(tab)
+                  {source || q || ["interest", "saved"].includes(tab)
                     ? "뉴스 탐색"
-                    : periods.find((p) => p[0] === period)?.[1]}
+                    : `${category ? (category === "보수" ? "보수 뉴스 " : category === "진보" ? "진보 뉴스 " : `${category} `) : ""}${periods.find((p) => p[0] === period)?.[1]}`}
                 </h2>
                 <small>
-                  {source ||
-                  category ||
-                  q ||
-                  ["interest", "saved"].includes(tab)
+                  {source || q || ["interest", "saved"].includes(tab)
                     ? "최근 수집 목록 · 최대 100개"
                     : "최대 10개 이슈 · 매시간 갱신"}
                 </small>
